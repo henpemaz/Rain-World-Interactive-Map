@@ -1,2 +1,2 @@
-# Rain-World-Interactve-Map
-A Rain World interactve map using leaflet and GeoJSON data exported from the game files.
+# Rain-World-Interactive-Map
+A Rain World interactive map using leaflet and GeoJSON data exported from the game files.
