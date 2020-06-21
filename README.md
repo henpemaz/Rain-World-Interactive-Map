@@ -19,4 +19,4 @@ The immediate to-do list for this project is:
 - place icons for the most common room tags like "shelter", "scavoutpost" and "swarmroom"
 - read and add placed-objects
 
-If you wish to contribute 
+If you wish to contribute, hmu on Discord
