@@ -1,0 +1,14 @@
+{
+  "version": "0.2.1",
+  "tasks": [
+    {
+      "taskName": "Open on Browser",
+      "appliesTo": "Rain-World-Interactive-Map.sln",
+      "type": "launch",
+      "windows": {
+        "command": "explorer.exe"
+      },
+      "args": [ "index.html" ]
+    }
+  ]
+}
