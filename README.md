@@ -1,6 +1,8 @@
 # Rain-World-Interactive-Map
 A Rain World interactive map using leaflet and GeoJSON data exported from the game files.
 
+[(Link to the map page)](https://henpemaz.github.io/Rain-World-Interactive-Map/index.html)
+
 This project consists of two parts
 - Some python code for reading through the game files and exporting anything of interest as geojson features using the dev-map coordinates, also creates the low-res room tiles to be used by the map from the merged-screenshots collection by AndrewFM.
 - The front-end app in plain html css and javascript using Leaflet for the map, all static files so it can be hosted in github.
