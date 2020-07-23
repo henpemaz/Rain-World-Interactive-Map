@@ -82,6 +82,7 @@ icon_by_name = {
     "Bigspider":"48_bigspider.png",
     "SpitterSpider":"49_spitterspider.png",
     "Miros Bird":"50_mirosbird.png",
+    "Miros":"50_mirosbird.png",
     "Bro":"51_brotherlonglegs.png",
     "Daddy":"52_daddylonglegs.png",
     "Deer":"53_raindeer.png",
@@ -172,12 +173,19 @@ class Region:
         self.connections = []
 
 
+
+
+
         ## WORLD FILE
         world_data = [e.strip() for e in readfile(joinCI(region_subfolders[name], "world_"+name+".txt")).splitlines() if e.strip() and not e.startswith("//")]
 
         world_def_entries = world_data[world_data.index("ROOMS")+1:world_data.index("END ROOMS")]
         world_creature_entries = world_data[world_data.index("CREATURES")+1:world_data.index("END CREATURES")]
         world_batmigration_entries = world_data[world_data.index("BAT MIGRATION BLOCKAGES")+1:world_data.index("END BAT MIGRATION BLOCKAGES")]
+
+        self.offscreenDen = Region.Room(self)
+        self.offscreenDen.name = "OFFSCREEN"
+        self.rooms[self.offscreenDen.name] = self.offscreenDen
 
         for def_entry in world_def_entries:
             room = Region.Room(self)
@@ -188,7 +196,7 @@ class Region:
         for creature_entry in world_creature_entries:
             self.spawns.extend(Region.Spawn.several_from_creature_entry(creature_entry, self))
 
-        # TODO read bat migration blockages... there is one or two in the entire game who cares
+        # TO DO read bat migration blockages... there is one or two in the entire game, who cares
 
 
         ## PROPERTIES FILE
@@ -199,7 +207,7 @@ class Region:
                 self.palette = param
             elif switch == "Room Setting Templates":
                 self.roomSettingTemplateNames = param.split(", ")
-                ## TODO read and apply templates
+                ## TO DO read and apply templates
             elif switch == "Broken Shelters":
                 self.broken_shelters = param.split(", ")
             elif switch == "Subregion":
@@ -216,6 +224,11 @@ class Region:
 
         ## ROOMS FILES
         for room in self.rooms.values():
+
+            if room.name == "OFFSCREEN":
+                room.nodes =[Region.Node(5, 0, 0)]
+                continue
+
             if "GATE" in room.tags:
                 room_lines = readfile(joinCI(gates_folder, room.name+".txt")).splitlines()
             else:
@@ -249,7 +262,17 @@ class Region:
             room.nodes = []
             
             ## Geometry is written column by column, nodes are counted line by line topdown
+
+            # a map to "decent coordinates" for latter
             tiles = [t for t in room_lines[11].split("|") if t.strip()]
+            room.tiles = []
+            for y in range(room.size_y):
+                room.tiles.insert(0, [])
+                for x in range(room.size_x):
+                    tile = list(map(int,tiles[  x*room.size_y +  y ].split(",")))
+                    room.tiles[0].append(tile)
+                    
+            ## scanning for nodes
             for nodetype in [4,5,12]:
                 for y in range(room.size_y):
                     for x in range(room.size_x):
@@ -260,12 +283,8 @@ class Region:
                                 node_x = x
                                 node_y = room.size_y - 1 - y
                                 room.nodes.append(Region.Node(nodetype, node_x, node_y))
-                            
-                        
-                        
-            
-            ## TODO read other room nodes and geometry
-
+                                 
+            ## TO DO read other room nodes
 
         ## MAP FILE
         ## LAYOUT AND CONNECTIONS
@@ -275,8 +294,7 @@ class Region:
             if target in self.rooms:
                 self.rooms[target].read_map_entry(info)
             elif target.startswith("OffScreenDen"):
-                pass
-                ## ???
+                self.offscreenDen.read_map_entry(info)
             elif target == "Connection":
                 self.connections.append(Region.Connection(self, info))
 
@@ -290,6 +308,11 @@ class Region:
         ## ROOMS
         fc = geojson.FeatureCollection([r.generate_room_feature(target) for r in self.rooms.values()])
         with open(os.path.join(target, self.name + "_rooms.geojson"), 'w') as myout:
+            geojson.dump(fc,myout)
+
+        ## Room Geometry
+        fc = geojson.GeometryCollection([c.to_geometry_feature() for c in self.rooms.values()])
+        with open(os.path.join(target, self.name + "_room_geometry.geojson"), 'w') as myout:
             geojson.dump(fc,myout)
 
         ## CONNECTIONS
@@ -306,8 +329,8 @@ class Region:
         fc = geojson.FeatureCollection([f for f in [s.to_feature() for s in self.spawns] if f]) ## some fail
         with open(os.path.join(target, self.name + "_spawns.geojson"), 'w') as myout:
             geojson.dump(fc,myout)
-        
-        
+
+
         
     def __repr__(self):
         return self.name    
@@ -339,11 +362,21 @@ class Region:
         
         
         def generate_room_feature(self,target_path):
+
+            if self.name == "OFFSCREEN":
+                properties = {
+                "type":"room",
+                "name":self.name,
+                "file":"",
+                "size":[30,10]
+                }
+                return geojson.Feature(geometry=geojson.Point((self.dev_x, self.dev_y)), properties=properties )
+
             #read image
             im = Image.open(os.path.join(screenshots_root, region_screenshot_names[self.region.name], self.name+".png"))
             #determine size
             size = im.size
-            
+
             #determine bounds in map-space
             ## this is a pretty rough estimate of the "bottom left" coordinate of the combined screenshot
             ## in the room local pixel coordinate system (same origin as the geometry coords, 20x scale)
@@ -351,8 +384,8 @@ class Region:
             camera_min = (min(c[0] for c in self.cameras) + 17, min(c[1] for c in self.cameras) + 18)
             camera_max = (max(c[0] for c in self.cameras) + 1400 - 17, max(c[1] for c in self.cameras) + 800 - 14)
             
-            map_x = self.dev_x + camera_min[0]/10 ## pixels to dev-map units -> /20 *2
-            map_y = self.dev_y + camera_min[1]/10
+            map_x = self.dev_x + camera_min[0]/10 - 2 ## pixels to dev-map units -> /20 *2
+            map_y = self.dev_y + camera_min[1]/10 - 2
             
             map_w = camera_max[0]/10 - camera_min[0]/10
             map_h = camera_max[1]/10 - camera_min[1]/10
@@ -373,19 +406,91 @@ class Region:
                 "size":[map_w,map_h]
                 }
             return geojson.Feature(geometry=geojson.Point((map_x, map_y)), properties=properties )
+
+        def to_geometry_feature(self):
+
+            if self.name == "OFFSCREEN":
+                return geojson.MultiLineString([])
+
+            lines = []
+            for y in range(self.size_y):
+                for x in range(self.size_x):
+                    # solid-air interfaces are easy
+                    if self.tiles[y][x][0] == 1: # Solid tile
+                        # read neighbors
+                        for dy,dx in [[0,1],[1,0],[-1,0],[0,-1]]:
+                            if (0 <= x+dx < self.size_x) and (0 <= y+dy < self.size_y) and (self.tiles[y+dy][x+dx][0] == 0 or self.tiles[y+dy][x+dx][0] == 3): # air or half-floor
+                                ## there's probably some clever way to do this but I wont bother
+                                if dx == 0:
+                                    lines.append((self.center_of_tile_to_devmap(x-0.5, y+dy/2),self.center_of_tile_to_devmap(x+0.5, y+dy/2)))
+                                else: #if dy == 0:
+                                    lines.append((self.center_of_tile_to_devmap(x+dx/2, y-0.5),self.center_of_tile_to_devmap(x+dx/2, y+0.5)))
+                    # For slopes you need to find their orientation
+                    if self.tiles[y][x][0] == 2: # Slope tile
+                        # read neighbors clockwise, overlap first reading
+                        #previous = None
+                        #for dy,dx in [[0,1],[-1,0],[0,-1],[1,0],[0,1]]:
+                        #    if (0 <= x+dx < self.size_x) and (0 <= y+dy < self.size_y) and self.tiles[y+dy][x+dx][0] == 1: # Solid
+                        #        if previous:
+                        #            lines.append((self.center_of_tile_to_devmap(x+dx/2-previous[0]/2, y+dy/2-previous[1]/2),self.center_of_tile_to_devmap(x-dx/2+previous[0]/2, y-dy/2+previous[1]/2)))
+                        #        else:
+                        #            previous = [dx,dy]
+                        #    else:
+                        #        previous = None
+
+                        if (0 <= x-1 < self.size_x)  and self.tiles[y][x-1][0] == 1:
+                            if (0 <= y-1 < self.size_y)  and self.tiles[y-1][x][0] == 1:
+                                lines.append((self.center_of_tile_to_devmap(x-0.5, y+0.5),self.center_of_tile_to_devmap(x+0.5, y-0.5)))
+                            elif (0 <= y+1 < self.size_y)  and self.tiles[y+1][x][0] == 1:
+                                lines.append((self.center_of_tile_to_devmap(x-0.5, y-0.5),self.center_of_tile_to_devmap(x+0.5, y+0.5)))
+                        elif (0 <= x+1 < self.size_x)  and self.tiles[y][x+1][0] == 1:
+                            if (0 <= y-1 < self.size_y)  and self.tiles[y-1][x][0] == 1:
+                                lines.append((self.center_of_tile_to_devmap(x+0.5, y+0.5),self.center_of_tile_to_devmap(x-0.5, y-0.5)))
+                            elif (0 <= y+1 < self.size_y)  and self.tiles[y+1][x][0] == 1:
+                                lines.append((self.center_of_tile_to_devmap(x+0.5, y-0.5),self.center_of_tile_to_devmap(x-0.5, y+0.5)))
+
+
+                    # Half floors are a pair of lines
+                    if self.tiles[y][x][0] == 3: # Half-floor
+                        lines.append((self.center_of_tile_to_devmap(x+0.5, y),self.center_of_tile_to_devmap(x-0.5, y)))
+                        lines.append((self.center_of_tile_to_devmap(x+0.5, y+0.5),self.center_of_tile_to_devmap(x-0.5, y+0.5)))
+                        if (0 <= x+1 < self.size_x) and self.tiles[y][x+1][0] == 0: # Air to the right
+                            lines.append((self.center_of_tile_to_devmap(x+0.5, y),self.center_of_tile_to_devmap(x+0.5, y+0.5)))
+                        if (0 <= x-1 < self.size_x) and self.tiles[y][x-1][0] == 0: # Air to the left
+                            lines.append((self.center_of_tile_to_devmap(x-0.5, y),self.center_of_tile_to_devmap(x-0.5, y+0.5)))
+
+                    # Poles
+                    if 1 in self.tiles[y][x][1:]: # vertical
+                        lines.append((self.center_of_tile_to_devmap(x, y-0.5),self.center_of_tile_to_devmap(x, y+0.5)))
+
+                    if 2 in self.tiles[y][x][1:]: # Horizontal
+                        lines.append((self.center_of_tile_to_devmap(x-0.5, y),self.center_of_tile_to_devmap(x+0.5, y)))
+
+            #Now now
+            return geojson.MultiLineString(lines)
+
             
         def __repr__(self):
             return self.name
 
-        def center_of_tile_to_devmap(self, tilepos):
-            return [self.dev_x + 2 + tilepos[0]*2,self.dev_y + 2 + tilepos[1]*2]
+        def center_of_tile_to_devmap(self, tilepos, ypos=None):
+            if hasattr(tilepos, "__getitem__") or ypos is None:
+                return [self.dev_x + 1 + tilepos[0]*2,self.dev_y + 1 + tilepos[1]*2]
+            return [self.dev_x + 1 + tilepos*2,self.dev_y + 1 + ypos*2]
+
     
+
     class Node:
         def __init__(self, nodetype, node_x, node_y):
             self.nodetype = nodetype
             self.node_x = node_x
             self.node_y = node_y
             self.pos = [node_x, node_y]
+            self.index = -1
+
+        def next_index(self):
+            self.index += 1
+            return self.index
 
         def __repr__(self):
             return str(self.nodetype) + ":" + str(self.pos)
@@ -419,9 +524,9 @@ class Region:
                 spawn.amount = 1
                 spawn.region = region
                 
-                ### TODO HANDLE THESE
-                if spawn.room_name == "OFFSCREEN":
-                    return []
+                ### TO DO HANDLE THESE
+                #if spawn.room_name == "OFFSCREEN":
+                #    return []
                 
                 return [spawn]
                 
@@ -429,9 +534,9 @@ class Region:
                 creature_arr = arr[1].split(", ")
                 spawn_arr = []
                 
-                ### TODO HANDLE THESE
-                if arr[0] == "OFFSCREEN":
-                    return []
+                ### TO DO HANDLE THESE
+                #if arr[0] == "OFFSCREEN":
+                #    return []
                 
                 for creature_desc in creature_arr:
                     spawn = Region.Spawn()
@@ -472,12 +577,14 @@ class Region:
             room = self.region.rooms[self.room_name]
             if self.den_index < len(room.nodes): ## Garbage Worms
                 pos = room.center_of_tile_to_devmap(room.nodes[self.den_index].pos)
+                index = room.nodes[self.den_index].next_index()
             else:
                 return None
             properties = {
                 "type":"spawn",
                 "difficulties":self.difficulties,
                 "is_lineage":self.is_lineage,
+                "index_in_den":index,
                 "creature":self.creature,
                 "creature_icon":icon_by_name[self.creature],
                 "amount":self.amount,
@@ -492,9 +599,9 @@ class Region:
 
     class RoomSettings:
         def __init__(self):
-            ## TODO
-            ## TODO
-            ## TODO
+            ## TO DO
+            ## TO DO
+            ## TO DO
             pass
 
     
@@ -564,3 +671,4 @@ for region_code in region_codes:
 
 ##regions["SU"].generate_features()
 
+print("Done!")

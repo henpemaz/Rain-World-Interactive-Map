@@ -24,12 +24,19 @@ Project("{E24C65DC-7377-472B-9ABA-BC803B73C61A}") = "Rain-World-Interactive-Map"
 		SlnRelativePath = "..\Rain-World-Interactive-Map\"
 	EndProjectSection
 EndProject
+Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "Rain-World-Interactive-Map", "Rain-World-Interactive-Map.pyproj", "{6EDC94E9-0E30-4059-94F2-9D6B13F101E1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{61CB4DE6-187D-4D77-8B9C-1DE2B989D3D1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{61CB4DE6-187D-4D77-8B9C-1DE2B989D3D1}.Release|Any CPU.ActiveCfg = Debug|Any CPU
+		{61CB4DE6-187D-4D77-8B9C-1DE2B989D3D1}.Release|Any CPU.Build.0 = Debug|Any CPU
+		{6EDC94E9-0E30-4059-94F2-9D6B13F101E1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6EDC94E9-0E30-4059-94F2-9D6B13F101E1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

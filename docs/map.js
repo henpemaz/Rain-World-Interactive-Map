@@ -2,7 +2,7 @@
  * 
  */
 
-var region = "SL";
+var region = "SU";
 
 /*
  *  Utilitary stuff
@@ -25,11 +25,12 @@ function getJsonObject(url,cb){
     }
 }
 
-function make_icon_label(icon_file, label){
+function make_icon_label(icon_file, label, xindex){
 	return new L.DivIcon({
         className: 'my-div-icon',
         html: '<img class="icon-image" src="./resources/icons/'+icon_file+'"/>'+
-              '<div class="icon-label">'+label+'</div>'
+            '<div class="icon-label">' + label + '</div>',
+        iconAnchor: L.point(-(xindex)*20, 0)
     });
 }
 
@@ -90,7 +91,7 @@ var roomStyle = { "opacity": 1 };
 
 // Throwables
 function throwable_to_layer(feature, latlng) {
-    return L.marker(latlng, { icon: L.icon({ iconUrl: './resources/icons/' + feature.properties.icon, }) });
+    return L.marker(latlng, { icon: L.icon({ iconUrl: './resources/icons/' + feature.properties.icon, className: "icon-image"}) });
 }
 
 
@@ -99,9 +100,9 @@ var spawn_difficulty_layers = {};
 function spawn_show_difficulty(difficulty) {
     for (key in spawn_difficulty_layers) {
         if (key == difficulty) {
-            map.addLayer(spawn_difficulty_layers[key]);
+            spawn_layers.addLayer(spawn_difficulty_layers[key]);
         } else {
-            map.removeLayer(spawn_difficulty_layers[key]);
+            spawn_layers.removeLayer(spawn_difficulty_layers[key]);
         }
     }
 }
@@ -109,16 +110,19 @@ function spawn_show_difficulty(difficulty) {
 function spawn_to_layer(feature, latlng) {
     if (!feature.properties.is_lineage) {
         // return L.marker(latlng, {icon:L.icon({iconUrl:'./resources/icons/' + feature.properties.creature_icon, iconSize:[50,50],iconAnchor:[25,25]})});
-        return L.marker(latlng, { icon: make_icon_label(feature.properties.creature_icon, "x" + feature.properties.amount) });
+        return L.marker(latlng, { icon: make_icon_label(feature.properties.creature_icon, "x" + feature.properties.amount, feature.properties.index_in_den), zIndexOffset: -10 * feature.properties.index_in_den});
     } else {
         var icons = [];
         for (var i = 0; i < feature.properties.lineage_icons.length; i++) {
             //icons.push(L.icon({iconUrl:'./resources/icons/' + feature.properties.lineage_icons[i], iconSize:[50,50],iconAnchor:[25,25]}));
-            icons.push(make_icon_label(feature.properties.lineage_icons[i], "" + feature.properties.lineage_probs[i]));
+            icons.push(make_icon_label(feature.properties.lineage_icons[i], "" + feature.properties.lineage_probs[i], feature.properties.index_in_den));
         }
-        return L.marker.stack(latlng, { icons: icons, stackOffset: [0, 20] });
+        return L.marker.stack(latlng, { icons: icons, stackOffset: [0, 20], stackZOffset: -1, zIndexOffset: -10 * feature.properties.index_in_den });
     }
 }
+
+
+
 
 
 function load_region(region) {
@@ -126,36 +130,55 @@ function load_region(region) {
     map.eachLayer(function (layer) {
         map.removeLayer(layer);
     });
+    if (region_control != null) {
+        map.removeControl(region_control);
+    }
+    region_control = L.control.layers([], [], {collapsed:false})
+    region_control.addTo(map);
+
+    document.getElementsByClassName('layer-content')[0].appendChild(region_control.getContainer());
+
+
+    region_control.expand();
 
 
     // Rooms
     getJsonObject("./resources/" + region + "/" + region + "_rooms.geojson", function (geojsonFeature) {
         L.geoJSON(geojsonFeature, { pointToLayer: room_to_map, style: roomStyle }).addTo(map);
-        L.geoJSON(geojsonFeature, { pointToLayer: room_name_to_map, style: roomStyle }).addTo(map);
+        region_control.addOverlay(L.geoJSON(geojsonFeature, { pointToLayer: room_name_to_map, style: roomStyle }).addTo(map), "Names");
+    });
+
+    // Room Geometry
+    getJsonObject("./resources/" + region + "/" + region + "_room_geometry.geojson", function (geojsonGeometry) {
+        region_control.addOverlay(L.geoJSON(geojsonGeometry, {  style: roomStyle }).addTo(map), "Geometry");
     });
 
     // Connections
     getJsonObject("./resources/" + region + "/" + region + "_connections.geojson", function (geojsonFeature) {
-        L.geoJSON(geojsonFeature, { style: roomStyle }).addTo(map);
+        region_control.addOverlay(L.geoJSON(geojsonFeature, { style: roomStyle }).addTo(map), "Connections");
     });
 
     // Throwables
     getJsonObject("./resources/" + region + "/" + region + "_throwables.geojson", function (geojsonFeature) {
-        L.geoJSON(geojsonFeature, { pointToLayer: throwable_to_layer, style: roomStyle }).addTo(map);
+        region_control.addOverlay(L.geoJSON(geojsonFeature, { pointToLayer: throwable_to_layer, style: roomStyle }).addTo(map), "Throwables");
     });
 
     //Creature Spawns
     getJsonObject("./resources/" + region + "/" + region + "_spawns.geojson", function (geojsonFeature) {
-        spawn_difficulty_layers[0] = L.geoJSON(geojsonFeature, { pointToLayer: spawn_to_layer, filter: difficulty_filters[0], style: roomStyle }).addTo(map);
-        spawn_difficulty_layers[1] = L.geoJSON(geojsonFeature, { pointToLayer: spawn_to_layer, filter: difficulty_filters[1], style: roomStyle }).addTo(map);
-        spawn_difficulty_layers[2] = L.geoJSON(geojsonFeature, { pointToLayer: spawn_to_layer, filter: difficulty_filters[2], style: roomStyle }).addTo(map);
+        spawn_layers = L.layerGroup();
+        spawn_difficulty_layers[0] = L.geoJSON(geojsonFeature, { pointToLayer: spawn_to_layer, filter: difficulty_filters[0], style: roomStyle }).addTo(spawn_layers);
+        spawn_difficulty_layers[1] = L.geoJSON(geojsonFeature, { pointToLayer: spawn_to_layer, filter: difficulty_filters[1], style: roomStyle }).addTo(spawn_layers);
+        spawn_difficulty_layers[2] = L.geoJSON(geojsonFeature, { pointToLayer: spawn_to_layer, filter: difficulty_filters[2], style: roomStyle }).addTo(spawn_layers);
         spawn_show_difficulty(current_difficulty);
+        region_control.addOverlay(spawn_layers.addTo(map), "Spawns");
     });
+
 
 }
 
-
-load_region("SU")
+spawn_layers = null;
+region_control = null;
+load_region("SU");
 
 
 
