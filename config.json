@@ -1,6 +1,6 @@
 {
-	"game_folder":"C:\\Program Files (x86)\\Steam\\steamapps\\common\\Rain World",
-	"screenshots_folder":"E:\\Henpemaz\\Art\\Rainworld\\Rain World Merged Screenshots",
-	"output_folder":".\\docs\\resources",
-	"relative_output_folder":"./resources"
+	"game_folder": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Rain World",
+	"screenshots_folder": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Rain World\\Export",
+	"output_folder": ".\\docs\\resources",
+	"relative_output_folder": "./resources"
 }
