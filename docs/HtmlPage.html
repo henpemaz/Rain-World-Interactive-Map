@@ -1,0 +1,63 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+
+    <meta charset="ISO-8859-1">
+    <title>Rain World Interactive Map v2</title>
+
+    <meta property="og:image" content="https://avatars0.githubusercontent.com/u/7621953?s=400&amp;v=4" />
+    <meta property="og:site_name" content="GitHub" />
+    <meta property="og:type" content="object" />
+    <meta property="og:title" content="Rain World Interactive Map" />
+    <meta property="og:url" content="https://henpemaz.github.io/Rain-World-Interactive-Map/index.html" />
+    <meta property="og:description" content="A Rain World interactive map using leaflet and GeoJSON data exported from the game files. - henpemaz/Rain-World-Interactive-Map" />
+
+    <link rel="stylesheet" href="./leaflet/leaflet.css" />
+    <script src="./leaflet/leaflet-src.js"></script>
+    <script src="./leaflet/Leaflet.Marker.Stack/Leaflet.Marker.Stack.js"></script>
+    <script src="./leaflet/Leaflet.Marker.Stack/Leaflet.Icon.Chip.js"></script>
+
+    <link rel="stylesheet" href="./map.css" />
+
+</head>
+<body>
+    <div id="mapid"></div>
+    <script>
+        var map = L.map('mapid', {
+            minZoom: -7,
+            maxZoom: 0,
+            crs: L.CRS.Simple
+        });
+        L.tileLayer('tiles/modded/SU/{z}/{x}_{y}.png', {
+            minZoom: -7,
+            maxZoom: 0
+        }).addTo(map);
+        //var marker = L.marker([0,0]).addTo(map);
+
+        function getJsonObject(url, cb, async = true) {
+            // read text from URL location
+            var request = new XMLHttpRequest();
+            request.open('GET', url, async);
+            request.onreadystatechange = function () {
+                if (request.readyState === 4 && request.status === 200) {
+                    var type = request.getResponseHeader('Content-Type');
+                    try {
+                        cb(JSON.parse(request.responseText));
+                    } catch (err) {
+                        console.log(err);
+                    }
+                }
+            }
+            request.send(null);
+        }
+
+        function showGeoJSON(gjson) {
+            L.geoJSON(gjson).addTo(map);
+        }
+
+        //getJsonObject("tiles/modded/SU/rooms.geojson", showGeoJSON, true)
+
+        map.setView([0, 0], -7);
+    </script>
+</body>
+</html>

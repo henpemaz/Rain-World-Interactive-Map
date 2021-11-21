@@ -1,7 +1,9 @@
 import os
-
 import json, geojson
 import re, collections
+import numpy as np, numpy.linalg as la
+import statistics
+
 
 from PIL import Image
 
@@ -19,142 +21,179 @@ def joinCI(path, *target, must_be_folder=False):
         for entry in scan:
             if entry.name.lower() == target[0].lower() and (not must_be_folder or entry.is_dir()):
                 return os.path.join(path, entry)
-            
 
-
-## Icon dictionary, duplicate entries as needed
-icon_by_name = {
-    "clear":"00_clear.png",
-    "rock":"01_rock.png",
-    "spear":"02_spear.png",
-    "boomstick":"03_explosivespear.png",
-    "bomb":"04_explosivebomb.png",
-    "hive":"05_hive.png",
-    "lantern":"06_lantern.png",
-    "lure":"07_lureplant.png",
-    "mushroom":"08_mushroom.png",
-    "flashbang":"09_flashbomb.png",
-    "puffball":"10_puffball.png",
-    "waternut":"11_bubblefruit.png",
-    "firecrackerplant":"12_firecrackerplant.png",
-    "bluefruit":"13_bluefruit.png",
-    "jellyfish":"14_jellyfish.png",
-    "bubbleweed":"15_bubbleweed.png",
-    "slimemold":"16_slimemold.png",
-    "slugcat":"17_slugcat.png",
-    ## Creatures from the World File
-    "Green":"18_greenlizard.png",
-    "Pink":"19_pinklizard.png",
-    "Blue":"20_bluelizard.png",
-    "White":"21_whitelizard.png",
-    "Black":"22_molelizard.png",
-    "Yellow":"23_orangelizard.png",
-    "Cyan":"24_cyanlizard.png",
-    "Red":"25_redlizard.png",
-    "Salamander":"26_salamander.png",
-    "batfly":"27_batfly.png",
-    "CicadaA":"28_whitecicada.png",
-    "CicadaB":"29_darkcicada.png",
-    "Snail":"30_snailturtle.png",
-    "Leech":"31_redleech.png",
-    "Sea Leech":"32_blueleech.png",
-    "Mimic":"33_poleplant.png",
-    "TentaclePlant":"34_monsterkelp.png",
-    "Tentacle Plant":"34_monsterkelp.png",
-    "Scavenger":"35_scavenger.png",
-    "vulturegrub":"36_vulturegrub.png",
-    "Vulture":"37_vulture.png",
-    "KingVulture":"38_kingvulture.png",
-    "Small Centipede":"39_smallcentipede.png",
-    "Centipede":"40_centipede.png",
-    "Big Centipede":"41_bigcentipede.png",
-    "Red Centipede":"42_redcentipede.png",
-    "RedCentipede":"42_redcentipede.png",
-    "Centiwing":"43_flyingcentipede.png",
-    "grappleworm":"44_grappleworm.png",
-    "Tube":"44_grappleworm.png",
-    "TubeWorm":"44_grappleworm.png",
-    "Tube Worm":"44_grappleworm.png",
-    "hazer":"45_hazer.png",
-    "Lantern Mouse":"46_lanternmouse.png",
-    "Spider":"47_spider.png",
-    "BigSpider":"48_bigspider.png",
-    "Bigspider":"48_bigspider.png",
-    "SpitterSpider":"49_spitterspider.png",
-    "Miros Bird":"50_mirosbird.png",
-    "Miros":"50_mirosbird.png",
-    "Bro":"51_brotherlonglegs.png",
-    "Daddy":"52_daddylonglegs.png",
-    "Deer":"53_raindeer.png",
-    "EggBug":"54_bubblebug.png",
-    "Eggbug":"54_bubblebug.png",
-    "DropBug":"55_dropwig.png",
-    "Dropbug":"55_dropwig.png",
-    "DropWig":"55_dropwig.png",
-    "Dropwig":"55_dropwig.png",
-    "BigNeedleWorm":"56_noodlefly.png",
-    "SmallNeedleWorm":"57_babynoodlefly.png",
-    "Jet Fish":"58_jetfish.png",
-    "JetFish":"58_jetfish.png",
-    "Jetfish":"58_jetfish.png",
-    "Leviathan":"59_leviathan.png",
-    "randomitems":"60_randomitems_inactive.png",
-    "NONE":"63_none.png",
-
-    
-    
-    ## Difficulties
-    "survivor":"17_slugcat.png",
-    "hunter":"64_hunter.png",
-    "monk":"65_monk.png",
-
-
-    ## Missing stuff
-    "Garbage Worm":"00_clear.png",
-    }
-
-
-
-
-
-## STEP 1: PARSE EVERYTHING
+def RectanglesOverlap(p1, p2, p3, p4):
+    return p1[0] <= p4[0] and p2[0] >= p3[0] and p1[1] <= p4[1] and p2[1] >= p3[1]
 
 with open("config.json") as config_file:
     config = json.load(config_file)
 
 game_root = config["game_folder"]
-world_folder = joinCI(game_root, "World")
-
 screenshots_root = config["screenshots_folder"]
-region_screenshot_names = {
-    'CC': "Chimney Canopy",
-    'DS': "Drainage System",
-    'HI': "Industrial Complex",
-    'GW': "Garbage Wastes",
-    'SI': "Sky Islands",
-    'SU': "Outskirts",
-    'SH': "Shaded Citadel",
-    'SL': "Shoreline",
-    'LF': "Farm Arrays",
-    'UW': "The Exterior",
-    'SB': "Subterranean",
-    'SS': "Five Pebbles"
-}
-
 output_folder = config["output_folder"]
 
-
+world_folder = joinCI(game_root, "World")
 gates_folder = joinCI(world_folder, "Gates")
 regions_folder = joinCI(world_folder, "Regions")
 
-regions_file = joinCI(regions_folder, "regions.txt")
-region_codes = [e.strip() for e in readfile(regions_file).splitlines() if e.strip()]
-region_subfolders = {}
-for entry in os.scandir(regions_folder):
-    if entry.is_dir() and entry.name in region_codes:
-        print("Found region:", entry.name)
-        region_subfolders[entry.name] = entry
+task_export_tiles = False
+task_export_room_features = True
 
+for entry in os.scandir(screenshots_root):
+    if not entry.is_dir() and not len(entry.name) == 2:
+        continue
+
+    print("Found region:", entry.name)
+    with open(joinCI(entry.path, "metadata.json")) as metadata:
+        regiondata = json.load(metadata)
+    assert entry.name == regiondata['acronym']
+
+    # pre calc
+    camfullsize = np.array([1400,800]) # in px
+    camsize = np.array([1366,768])
+    camoffset = np.array([17, 18])
+    ofscreensize = np.array([1200,400])
+    for roomname, room in regiondata['rooms'].items():
+        roomcoords = np.array(room['devPos']) * 10 # map coord to room px coords
+        room['roomcoords'] = roomcoords
+        if room['cameras'] == None:
+            room['camcoords'] = None
+            continue
+        else:
+            room['camcoords'] = [roomcoords + (camoffset + np.array(camera)) for camera in room['cameras']]
+            #for i, camera in enumerate(room['cameras']):
+            #    camcoords = 
+            #    room['camcoords'][i] = camcoords
+    
+    if task_export_tiles:
+        # out main map unit will be room px
+        # because only that way we can have the full-res images being loaded with no scaling
+
+        cam_min = np.array([0,0]) 
+        cam_max = np.array([0,0])
+
+        ## Find out boundaries of the image
+        ## Find 'average fg color'
+        for roomname, room in regiondata['rooms'].items():
+            roomcoords = room['roomcoords']#np.array(room['devPos']) * 10 # map coord to room px coords
+            if room['cameras'] == None:
+                cam_min = np.min([cam_min, roomcoords], 0)
+                cam_max = np.max([cam_max, roomcoords + ofscreensize],0)
+            else:
+                for i, camcoords in enumerate(room['camcoords']):
+                    #camcoords = np.array(camera)
+                    cam_min = np.min([cam_min, roomcoords + camcoords + camoffset],0)
+                    cam_max = np.max([cam_max, roomcoords + camcoords + camoffset + camsize],0)
+    
+        print(f"got cam min {cam_min}")
+        print(f"got cam max {cam_max}")
+
+        fg_col = tuple((np.array(statistics.mode(tuple(tuple(col) for col in regiondata['fgcolors']))) * 255).astype(int).tolist())
+        print(f"got fg_col {fg_col}")
+
+        dim = cam_max - cam_min
+
+        ## Building image tiles for each zoom level
+        for zoomlevel in range(0, -8, -1):
+            print(f"zoomlevel {zoomlevel}")
+
+            target = os.path.join(output_folder, entry.name, str(zoomlevel))
+            if not os.path.exists(target):
+                os.makedirs(target, exist_ok=True)
+
+            mulfac = 2**zoomlevel
+            print(f"mulfac {mulfac}")
+            print(f"base image would be {dim * mulfac}")
+
+            # find bounds
+            # lower left inclusive, upper right noninclusive
+            tile_size = np.array([256,256])
+            llb_tile = np.floor(mulfac*cam_min/tile_size).astype(int)
+            urb_tile = np.ceil(mulfac*cam_max/tile_size).astype(int)
+        
+            print(f"got llb_tile {llb_tile}")
+            print(f"got urb_tile {urb_tile}")
+
+            grid_size = urb_tile - llb_tile
+            print(f"got grid_size {grid_size}")
+        
+            # Going over the grid, making images
+            for tilex in range(llb_tile[0], urb_tile[0]):
+                for tiley in range(llb_tile[1], urb_tile[1]):
+                    # making a tile
+                    #print(f"processing {tilex}_{tiley}")
+                    current_tile = np.array([tilex,tiley])
+                    tilecoords = tile_size * current_tile
+                    tileuppercoords = tilecoords + tile_size
+                    tile = None #guard
+
+                    currentcamsize = camsize*mulfac
+
+                    # find overlapping rooms
+                    for roomname, room in regiondata['rooms'].items():
+                        #np.array(room['devPos']) * 10  * mulfac # map coord to room px coords to zoom level
+                        if room['cameras'] == None:
+                            continue
+                        else:
+                            for i, camera in enumerate(room['camcoords']):
+                                camcoords = camera * mulfac # roomcoords + (camoffset + np.array(camera)) * mulfac # room px to zoom level
+
+                                if RectanglesOverlap(camcoords,camcoords + currentcamsize, tilecoords,tileuppercoords):
+                                    if tile == None:
+                                        tile = Image.new('RGB', tuple(tile_size.tolist()), fg_col)
+                                    #draw
+                                    camimg = Image.open(joinCI(screenshots_root, regiondata["acronym"], roomname + f"_{i}.png"))
+                                    if mulfac != 1:
+                                        # scale cam
+                                        camresized = camimg.resize(tuple(np.array([camimg.width*mulfac,camimg.height*mulfac], dtype=int)))
+                                        camimg.close()
+                                        camimg = camresized
+
+                                    #image has flipped y, tracks off upper left corner
+                                    paste_offset = (camcoords.astype(int) + np.array([0, camimg.height], dtype=int)) - (tilecoords + np.array([0, tile_size[1]], dtype=int))
+                                    paste_offset[1] = -paste_offset[1]
+                                    # bug: despite the docs, paste requires a 4-tuble box, not a simple topleft coordinate
+                                    paste_offset = (paste_offset[0], paste_offset[1],paste_offset[0] + camimg.width, paste_offset[1] + camimg.height)
+                                    #print(f"paste_offset is {paste_offset}")
+                                    tile.paste(camimg, paste_offset)
+                                    camimg.close()
+                                
+                    if tile != None:
+                        # done pasting rooms
+                        tile.save(os.path.join(target, f"{tilex}_{-1-tiley}.png"))
+                        tile.close()
+                        tile = None
+        print("done with tiles task")
+
+    if task_export_room_features:
+        room_features = []
+        for roomname, room in regiondata['rooms'].items():
+            roomcoords = room['roomcoords']
+
+            if room['cameras'] == None:
+                roomsize = ofscreensize
+            else:
+                roomsize = np.array(room['size']) * 20 # tiles to pxs
+
+            
+            coords = np.array([roomcoords, roomcoords + np.array([0,roomsize[1]]), roomcoords + roomsize, roomcoords + np.array([roomsize[0], 0]), roomcoords]).round(3).tolist()
+            #print(f"coords are {coords}")
+            room_features.append(geojson.Feature(
+                geometry=geojson.Polygon([coords,]), # poly expect a list containing a list of coords for each continuous edge
+                properties={
+                    "name":roomname,
+                }))
+
+        target = os.path.join(output_folder, entry.name)
+        if not os.path.exists(target):
+            os.makedirs(target, exist_ok=True)
+        with open(os.path.join(target, "rooms.geojson"), 'w') as myout:
+            geojson.dump(room_features,myout)
+        print("done with room features task")
+
+
+
+## old stuff below, to be reused for spawns I suppose
 
 class Region:
     """
@@ -171,9 +210,6 @@ class Region:
         self.rooms = {}
         self.spawns = []
         self.connections = []
-
-
-
 
 
         ## WORLD FILE
@@ -661,11 +697,11 @@ class Region:
 
 
 
-regions = {}
+#regions = {}
 
-for region_code in region_codes:
-    regions[region_code] = Region(region_code)
-    regions[region_code].generate_features()
+#for region_code in region_codes:
+#    regions[region_code] = Region(region_code)
+#    regions[region_code].generate_features()
 
 
 

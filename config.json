@@ -1,6 +1,6 @@
 {
 	"game_folder": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Rain World",
-	"screenshots_folder": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Rain World\\Export",
-	"output_folder": ".\\docs\\resources",
+	"screenshots_folder": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Rain World - Dev\\Export",
+	"output_folder": ".\\docs\\tiles\\modded",
 	"relative_output_folder": "./resources"
 }

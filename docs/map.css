@@ -3,12 +3,19 @@
     Container and leaflet
 */
 body, html {
-  height: 100%;
+    height: 100%;
+    Padding: 0;
+    margin: 0;
+    border: 0;
 }
 
 
 #mapid {
-  height: 100%;
+    height: 100%;
+    Padding: 0;
+    margin: 0;
+    border: 0;
+    background: black;
 }
 
 
