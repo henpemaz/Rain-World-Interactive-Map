@@ -1,0 +1,105 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+
+    <meta charset="ISO-8859-1">
+    <title>Rain World Interactive Map v2</title>
+
+    <meta property="og:image" content="https://avatars0.githubusercontent.com/u/7621953?s=400&amp;v=4" />
+    <meta property="og:site_name" content="GitHub" />
+    <meta property="og:type" content="object" />
+    <meta property="og:title" content="Rain World Interactive Map" />
+    <meta property="og:url" content="https://henpemaz.github.io/Rain-World-Interactive-Map/index.html" />
+    <meta property="og:description" content="A Rain World interactive map using leaflet and GeoJSON data exported from the game files. - henpemaz/Rain-World-Interactive-Map" />
+
+    <link rel="stylesheet" href="./leaflet/leaflet.css" />
+    <script src="./leaflet/leaflet-src.js"></script>
+    <script src="./leaflet/Leaflet.Marker.Stack/Leaflet.Marker.Stack.js"></script>
+    <script src="./leaflet/Leaflet.Marker.Stack/Leaflet.Icon.Chip.js"></script>
+
+    <link rel="stylesheet" href="./map.css" />
+
+</head>
+<body>
+    <div id="mapid"></div>
+    <script>
+        // Utils
+        function getJsonObject(url, cb, async = true) {
+            // Todo abort requests on region switch
+            // read text from URL location
+            var request = new XMLHttpRequest();
+            request.open('GET', url, async);
+            request.onreadystatechange = function () {
+                if (request.readyState === 4 && request.status === 200) {
+                    var type = request.getResponseHeader('Content-Type');
+                    try {
+                        cb(JSON.parse(request.responseText));
+                    } catch (err) {
+                        console.log(err);
+                    }
+                }
+            }
+            request.send(null);
+        }
+
+        // Map
+        var map = L.map('mapid', {
+            minZoom: -7,
+            maxZoom: 0,
+            crs: L.CRS.Simple
+        });
+
+        // Tileset layer
+        var tileLayer = L.tileLayer('tiles/modded/SU/{z}/{x}_{y}.png', {
+            attribution: "Rain World",
+            minZoom: -7,
+            maxZoom: 0
+        }).addTo(map);
+
+        // Meta region stuff
+        getJsonObject("tiles/modded/SU/region.json", function (json) {
+            map.getContainer().style.backgroundColor = 'rgb(' + json["fgcolor"].join(',') + ')'; // I hate this with passion
+        }, true);
+
+        // Rooms
+        var roomsLayer;
+        var lastRoomFocused;
+        var roomPopups = {};
+        getJsonObject("tiles/modded/SU/rooms.geojson", function (roomsjson) {
+            roomsLayer = L.geoJSON(roomsjson, {
+                style: {
+                    weight: 0,
+                    color: '#FFF',
+                    fillOpacity: 0
+                },
+                onEachFeature: function (feature, layer) {
+                    //console.log("processing " + feature.properties.name);
+                    layer.on({
+                        mouseover: function (e) {
+                            if (map.getZoom() < 0) {
+                                e.target.setStyle({
+                                    fillOpacity: 0.2
+                                });
+                                lastRoomFocused = e.target;
+                            }
+                        },
+                        mouseout: function (e) { roomsLayer.resetStyle(e.target); },
+                        click: function (e) { console.log("clicked on " + e.target.feature.properties.name); roomsLayer.resetStyle(e.target); map.fitBounds(e.target.getBounds()); }
+                    });
+                    
+                    var popup = L.popup({ closeButton: false, closeOnClick:false });
+                    popup.setLatLng(L.latLng([].concat(feature.properties.popupcoords).reverse()));
+                    popup.setContent(feature.properties.name);
+                    map.addLayer(popup);
+                }
+            }).addTo(map);
+            // remove room highlight on maxed zoom
+            map.on('zoomend', function () { if (map.getZoom() == 0 && lastRoomFocused) roomsLayer.resetStyle(lastRoomFocused); });
+
+            
+        }, true);
+
+        map.setView([0, 0], -5);
+    </script>
+</body>
+</html>

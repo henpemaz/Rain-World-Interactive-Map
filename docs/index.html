@@ -11,58 +11,28 @@
 <meta property="og:url" content="https://henpemaz.github.io/Rain-World-Interactive-Map/index.html" />
 <meta property="og:description" content="A Rain World interactive map using leaflet and GeoJSON data exported from the game files. - henpemaz/Rain-World-Interactive-Map" />
 
-<link rel="stylesheet" href="./leaflet/leaflet.css" />
-<script src="./leaflet/leaflet-src.js"></script>
-<script src="./leaflet/Leaflet.Marker.Stack/Leaflet.Marker.Stack.js"></script>
-<script src="./leaflet/Leaflet.Marker.Stack/Leaflet.Icon.Chip.js"></script>
-
-<link rel="stylesheet" href="./map.css" />
+<link rel="stylesheet" href="./rw.css" />
 
 </head>
 <body>
-<div id="mapid"></div>
-
-<div class="map-selector-panel">
-    <div class="panel-header">Regions</div>
-    <div class="map-selector-content">
-        <label><input type="radio" class="radio-hidden" name="region" onclick="load_region('SU');" value=0 autocomplete="off" checked="checked"><span>Outskirts</span></label>
-        <label><input type="radio" class="radio-hidden" name="region" onclick="load_region('HI');" value=0 autocomplete="off"><span>Industrial Complex</span></label>
-        <label><input type="radio" class="radio-hidden" name="region" onclick="load_region('DS');" value=0 autocomplete="off"><span>Drainage System</span></label>
-        <label><input type="radio" class="radio-hidden" name="region" onclick="load_region('CC');" value=0 autocomplete="off"><span>Chimney Canopy</span></label>
-        <label><input type="radio" class="radio-hidden" name="region" onclick="load_region('GW');" value=0 autocomplete="off"><span>Garbage Wastes</span></label>
-        <label><input type="radio" class="radio-hidden" name="region" onclick="load_region('SH');" value=0 autocomplete="off"><span>Shaded Citadel</span></label>
-        <label><input type="radio" class="radio-hidden" name="region" onclick="load_region('SL');" value=0 autocomplete="off"><span>Shoreline</span></label>
-        <label><input type="radio" class="radio-hidden" name="region" onclick="load_region('SI');" value=0 autocomplete="off"><span>Sky Islands</span></label>
-        <label><input type="radio" class="radio-hidden" name="region" onclick="load_region('LF');" value=0 autocomplete="off"><span>Farm Arrays</span></label>
-        <label><input type="radio" class="radio-hidden" name="region" onclick="load_region('UW');" value=0 autocomplete="off"><span>The Exterior</span></label>
-        <label><input type="radio" class="radio-hidden" name="region" onclick="load_region('SS');" value=0 autocomplete="off"><span>Five Pebbles</span></label>
-        <label><input type="radio" class="radio-hidden" name="region" onclick="load_region('SB');" value=0 autocomplete="off"><span>Subterranean</span></label>
+    <div id="main-menu">
+        <div class="rw-title">Rain World</div>
+        <div class="rw-bigtext" style="text-align: center; margin-top:0.3em;">I'm lost in...</div>
+        <div id="roomlist-vanilla">
+            <button class="rw-text rw-button">OUTSKIRTS</button><br />
+            <button class="rw-text rw-button">INDUSTRIAL COMPLEX</button><br />
+            <button class="rw-text rw-button">DRAINAGE SYSTEM</button><br />
+            <button class="rw-text rw-button">CHIMNEY CANOPY</button><br />
+            <button class="rw-text rw-button">GARBAGE WASTES</button><br />
+            <button class="rw-text rw-button">SHADED CITADEL</button><br />
+            <button class="rw-text rw-button">SHORELINE</button><br />
+            <button class="rw-text rw-button">SKY ISLANDS</button><br />
+            <button class="rw-text rw-button">FARM ARRAYS</button><br />
+            <button class="rw-text rw-button">THE EXTERIOR</button><br />
+            <button class="rw-text rw-button">FIVE PEBBLES</button><br />
+            <button class="rw-text rw-button">SUBTERRANEAN</button><br />
+        </div>
     </div>
-</div>
-
-<div class="layer-panel">
-    <div class="panel-header">Difficulties</div>
-    <div class="difficulty-choice">
-        <label>
-            <input type="radio" class="radio-hidden" name="difficulties" onclick="show_difficulty(0);" value=0 autocomplete="off" checked="checked">
-            <img src="./resources/icons/17_slugcat.png">
-        </label>
-        <label>
-            <input type="radio" class="radio-hidden" name="difficulties" onclick="show_difficulty(1);" value=1 autocomplete="off" >
-            <img src="./resources/icons/65_monk.png">
-        </label>
-        <label>
-            <input type="radio" class="radio-hidden" name="difficulties" onclick="show_difficulty(2);" value=2 autocomplete="off" >
-            <img src="./resources/icons/64_hunter.png">
-        </label>
-    </div>
-    <div class="layer-content">
-        <div class="panel-header">Layers</div>
-    </div>
-</div>
-
-<script src="./map.js"></script>
-
-
+    <div id="main-menu-footer"><a href="https://github.com/henpemaz/">Henpemaz</a> 2021 | <a href="https://store.steampowered.com/app/312520/Rain_World/">Rain World</a> is property of <a href="https://twitter.com/VideocultMedia">Videocult</a></div>
 </body>
 </html>

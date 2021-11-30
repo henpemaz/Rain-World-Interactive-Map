@@ -36,11 +36,16 @@ world_folder = joinCI(game_root, "World")
 gates_folder = joinCI(world_folder, "Gates")
 regions_folder = joinCI(world_folder, "Regions")
 
+debug_one_region = True
+
+task_export_region_meta = True
 task_export_tiles = False
 task_export_room_features = True
 
 for entry in os.scandir(screenshots_root):
     if not entry.is_dir() and not len(entry.name) == 2:
+        continue
+    if debug_one_region and entry.name != "SU":
         continue
 
     print("Found region:", entry.name)
@@ -54,45 +59,49 @@ for entry in os.scandir(screenshots_root):
     camoffset = np.array([17, 18])
     ofscreensize = np.array([1200,400])
     for roomname, room in regiondata['rooms'].items():
-        roomcoords = np.array(room['devPos']) * 10 # map coord to room px coords
-        room['roomcoords'] = roomcoords
+        room['roomcoords'] = np.array(room['devPos']) * 10 # map coord to room px coords
         if room['cameras'] == None:
             room['camcoords'] = None
             continue
         else:
-            room['camcoords'] = [roomcoords + (camoffset + np.array(camera)) for camera in room['cameras']]
-            #for i, camera in enumerate(room['cameras']):
-            #    camcoords = 
-            #    room['camcoords'][i] = camcoords
+            room['camcoords'] = [room['roomcoords'] + (camoffset + np.array(camera)) for camera in room['cameras']]
+    # out main map unit will be room px
+    # because only that way we can have the full-res images being loaded with no scaling
+
+    cam_min = np.array([0,0]) 
+    cam_max = np.array([0,0])
+
+    ## Find out boundaries of the image
+    for roomname, room in regiondata['rooms'].items():
+        roomcoords = room['roomcoords']
+        if room['cameras'] == None:
+            cam_min = np.min([cam_min, roomcoords], 0)
+            cam_max = np.max([cam_max, roomcoords + ofscreensize],0)
+        else:
+            for camcoords in room['camcoords']:
+                cam_min = np.min([cam_min, camcoords + camoffset],0)
+                cam_max = np.max([cam_max, camcoords + camoffset + camsize],0)
     
+    print(f"got cam min {cam_min}")
+    print(f"got cam max {cam_max}")
+
+    ## Find 'average fg color'
+    fg_col = tuple((np.array(statistics.mode(tuple(tuple(col) for col in regiondata['fgcolors']))) * 255).astype(int).tolist())
+    print(f"got fg_col {fg_col}")
+
+    dim = cam_max - cam_min
+
+    if task_export_region_meta:
+        regionmeta = {}
+        regionmeta["fgcolor"] = fg_col
+        target = os.path.join(output_folder, entry.name)
+        if not os.path.exists(target):
+            os.makedirs(target, exist_ok=True)
+        with open(os.path.join(target, "region.json"), 'w') as myout:
+            json.dump(regionmeta,myout)
+        pass
+
     if task_export_tiles:
-        # out main map unit will be room px
-        # because only that way we can have the full-res images being loaded with no scaling
-
-        cam_min = np.array([0,0]) 
-        cam_max = np.array([0,0])
-
-        ## Find out boundaries of the image
-        ## Find 'average fg color'
-        for roomname, room in regiondata['rooms'].items():
-            roomcoords = room['roomcoords']#np.array(room['devPos']) * 10 # map coord to room px coords
-            if room['cameras'] == None:
-                cam_min = np.min([cam_min, roomcoords], 0)
-                cam_max = np.max([cam_max, roomcoords + ofscreensize],0)
-            else:
-                for i, camcoords in enumerate(room['camcoords']):
-                    #camcoords = np.array(camera)
-                    cam_min = np.min([cam_min, roomcoords + camcoords + camoffset],0)
-                    cam_max = np.max([cam_max, roomcoords + camcoords + camoffset + camsize],0)
-    
-        print(f"got cam min {cam_min}")
-        print(f"got cam max {cam_max}")
-
-        fg_col = tuple((np.array(statistics.mode(tuple(tuple(col) for col in regiondata['fgcolors']))) * 255).astype(int).tolist())
-        print(f"got fg_col {fg_col}")
-
-        dim = cam_max - cam_min
-
         ## Building image tiles for each zoom level
         for zoomlevel in range(0, -8, -1):
             print(f"zoomlevel {zoomlevel}")
@@ -131,7 +140,6 @@ for entry in os.scandir(screenshots_root):
 
                     # find overlapping rooms
                     for roomname, room in regiondata['rooms'].items():
-                        #np.array(room['devPos']) * 10  * mulfac # map coord to room px coords to zoom level
                         if room['cameras'] == None:
                             continue
                         else:
@@ -171,17 +179,22 @@ for entry in os.scandir(screenshots_root):
             roomcoords = room['roomcoords']
 
             if room['cameras'] == None:
-                roomsize = ofscreensize
+                coords = np.array([roomcoords, roomcoords + np.array([0,ofscreensize[1]]), roomcoords + ofscreensize, roomcoords + np.array([ofscreensize[0], 0]), roomcoords]).round(3).tolist()
+                popupcoords = (roomcoords + ofscreensize + np.array([(-ofscreensize[0]/2, 0)])).round(3).tolist()[0] # single coord
             else:
-                roomsize = np.array(room['size']) * 20 # tiles to pxs
-
-            
-            coords = np.array([roomcoords, roomcoords + np.array([0,roomsize[1]]), roomcoords + roomsize, roomcoords + np.array([roomsize[0], 0]), roomcoords]).round(3).tolist()
-            #print(f"coords are {coords}")
+                roomcam_min = room['camcoords'][0]
+                roomcam_max = room['camcoords'][0]
+                for camcoords in room['camcoords']:
+                    roomcam_min = np.min([roomcam_min, camcoords],0)
+                    roomcam_max = np.max([roomcam_max, camcoords + camsize],0)
+                coords = np.array([roomcam_min, (roomcam_min[0], roomcam_max[1]), roomcam_max, (roomcam_max[0], roomcam_min[1]), roomcam_min]).round(3).tolist()
+                popupcoords = (roomcam_max - np.array([((roomcam_max[0] - roomcam_min[0]), 0)])/2).round(3).tolist()[0] # single coord
+            #print(f"room {roomname} coords are {coords}")
             room_features.append(geojson.Feature(
                 geometry=geojson.Polygon([coords,]), # poly expect a list containing a list of coords for each continuous edge
                 properties={
                     "name":roomname,
+                    "popupcoords":popupcoords
                 }))
 
         target = os.path.join(output_folder, entry.name)

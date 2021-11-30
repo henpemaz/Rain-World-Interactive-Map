@@ -1,0 +1,124 @@
+@font-face {
+    font-family: "Rodondo";
+    src: url(resources/Rodondo.otf) format("OpenType");
+}
+
+body, html {
+    background-color: black;
+    color: white;
+}
+
+#main-menu {
+    margin: auto;
+    height: fit-content;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+}
+
+#main-menu-footer {
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    text-align: center;
+    font-family: 'Segoe UI';
+    font-size: 0.8em;
+    font-weight: 500;
+    margin-bottom: 0.1em;
+    color: #A9A4B2; /* menu lightgray */
+    background-color: black;
+}
+    #main-menu-footer a:link {
+        color: white;
+    }
+    #main-menu-footer a:visited {
+        color: #A9A4B2; /* menu lightgray */
+    }
+
+.rw-title {
+    font-family: "Rodondo";
+    font-size: 6em;
+    text-align: center;
+    line-height: 75%;
+}
+
+.rw-bigtext {
+    font-family: 'Segoe UI';
+    font-size: 1.3125em;
+    font-weight: 600;
+}
+
+.rw-text {
+    font-family: 'Segoe UI';
+    font-size: 1em;
+    font-weight: 600;
+}
+
+#roomlist-vanilla {
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 1em;
+    margin-bottom: 1em;
+    width: fit-content;
+}
+
+/* Magic button animation start */
+
+@keyframes border-blinker {
+    50% {
+        border: 0.16em solid rgba(255,255,255,255);
+    }
+}
+
+@keyframes flasher {
+    0% {
+        background-color: #A9A4B2; /* menu lightgray */
+    }
+}
+
+.rw-button { /* button core */
+    position: relative;
+    box-sizing: content-box;
+    border-radius: 0.8em;
+    border: 0.16em solid rgba(255,255,255,0); /* for alpha fade */
+    background-color: black;
+    color: #A9A4B2; /* menu lightgray */
+    width: 12em; /* hardcoded size, adjust transform of outline to get pretty pixels*/
+    height: 2.4em;
+    position: relative;
+    margin: 0.2em;
+}
+
+    .rw-button:hover { /* on hover,  core border blinks, core fill flashes once */
+        animation: border-blinker 0.5s linear infinite, flasher 0.3s;
+        color: white;
+    }
+
+        .rw-button:hover:active { /* on click, core holds max color */
+            animation: none;
+            border: 0.16em solid rgba(255,255,255,255);
+        }
+
+    .rw-button::before { /* outline that expands */
+        content: "";
+        box-sizing: content-box;
+        position: absolute;
+        top: -0.12em; /* magic numbres, please fix me */
+        left: -0.12em;
+        width: 100%;
+        height: 100%;
+        border-radius: inherit;
+        border: 0.16em solid #A9A4B2; /* menu lightgray */
+        transition: transform 0.3s, border 0.3s;
+    }
+
+    /* note: properly doing bump behaviour would require keyframe and then there's no easy way to have the animation play back on mouse out (requires javascript event handling it seems)*/
+    .rw-button:hover::before {
+        transform: scaleX(1.04) scaleY(1.2); /* adjust here */
+        border: 0.16em solid white;
+    }
+
+/* Magic button animation end */
