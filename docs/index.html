@@ -18,20 +18,57 @@
     <div id="main-menu">
         <div class="rw-title">Rain World</div>
         <div class="rw-bigtext" style="text-align: center; margin-top:0.5em;">I'm lost in...</div>
-        <div id="roomlist-vanilla">
-            <button class="rw-text rw-button">OUTSKIRTS</button><br />
-            <button class="rw-text rw-button">INDUSTRIAL COMPLEX</button><br />
-            <button class="rw-text rw-button">DRAINAGE SYSTEM</button><br />
-            <button class="rw-text rw-button">CHIMNEY CANOPY</button><br />
-            <button class="rw-text rw-button">GARBAGE WASTES</button><br />
-            <button class="rw-text rw-button">SHADED CITADEL</button><br />
-            <button class="rw-text rw-button">SHORELINE</button><br />
-            <button class="rw-text rw-button">SKY ISLANDS</button><br />
-            <button class="rw-text rw-button">FARM ARRAYS</button><br />
-            <button class="rw-text rw-button">THE EXTERIOR</button><br />
-            <button class="rw-text rw-button">FIVE PEBBLES</button><br />
-            <button class="rw-text rw-button">SUBTERRANEAN</button><br />
+        <div id="regionlist-group">
+            <div id="regionlist-vanilla">
+                <button class="rw-button rw-text">OUTSKIRTS</button><br />
+                <button class="rw-button rw-text">INDUSTRIAL COMPLEX</button><br />
+                <button class="rw-button rw-text">DRAINAGE SYSTEM</button><br />
+                <button class="rw-button rw-text">CHIMNEY CANOPY</button><br />
+                <button class="rw-button rw-text">GARBAGE WASTES</button><br />
+                <button class="rw-button rw-text">SHADED CITADEL</button><br />
+                <button class="rw-button rw-text">SHORELINE</button><br />
+                <button class="rw-button rw-text">SKY ISLANDS</button><br />
+                <button class="rw-button rw-text">FARM ARRAYS</button><br />
+                <button class="rw-button rw-text">THE EXTERIOR</button><br />
+                <button class="rw-button rw-text">FIVE PEBBLES</button><br />
+                <button class="rw-button rw-text">SUBTERRANEAN</button><br />
+            </div>
+            <div id="regionlist-modded" class="rl-hidden">
+                <button class="rw-button rw-text">MODSKIRTS</button><br />
+                <button class="rw-button rw-text">INDUSTRIAL MODPLEX</button><br />
+                <button class="rw-button rw-text">MODDAGE SYSTEM</button><br />
+                <button class="rw-button rw-text">CHIMNEY MODPY</button><br />
+                <button class="rw-button rw-text">GARBAGE MODS</button><br />
+                <button class="rw-button rw-text">MODDED CITADEL</button><br />
+                <button class="rw-button rw-text">CONNECTIONLINE</button><br />
+                <button class="rw-button rw-text">MOD ISLANDS</button><br />
+                <button class="rw-button rw-text">MOD ARRAYS</button><br />
+                <button class="rw-button rw-text">THE MOD</button><br />
+                <button class="rw-button rw-text">FIVE MODDLES</button><br />
+                <button class="rw-button rw-text">MODTERRANEAN</button><br />
+            </div>
         </div>
+        <div id="modded-ckb-group"><input type="checkbox" id="modded-ckb" class="rw-checkbox" autocomplete="off"/><label for="modded-ckb" class="rw-text">Modded</label></div>
+        <script>
+            var updateVisibility = function () {
+                var ckb = document.getElementById('modded-ckb');
+                var moddedRegions = document.getElementById('regionlist-modded');
+                if (ckb.checked) {
+                    moddedRegions.classList.remove("rl-hidden");
+                } else {
+                    moddedRegions.classList.add("rl-hidden")
+                }
+            };
+            document.addEventListener("DOMContentLoaded", function () {
+                updateVisibility();
+                document.getElementById('modded-ckb').onchange = updateVisibility;
+            });
+            // fuck you, whatever form-restore mechanism is in play here
+            window.onload = function () {
+                updateVisibility();
+            };
+        </script>
+
     </div>
     <div id="main-menu-footer"><a href="https://github.com/henpemaz/">Henpemaz</a> 2021 | <a href="https://store.steampowered.com/app/312520/Rain_World/">Rain World</a> is property of <a href="https://twitter.com/VideocultMedia">Videocult</a></div>
 </body>

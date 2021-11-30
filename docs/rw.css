@@ -1,8 +1,5 @@
-@font-face {
-    font-family: "Rodondo";
-    src: url(resources/Rodondo.otf) format("OpenType");
-}
 
+/* big flex block of darkness */
 body, html {
     background-color: black;
     color: white;
@@ -13,12 +10,13 @@ body, html {
     padding: 0;
 }
 
+/* floaty in the center */
 #main-menu {
     margin: auto;
 }
 
+/* stuck to the bottom, custom link colors */
 #main-menu-footer {
-    margin-top: auto;
     margin-bottom: 0.1em;
     text-align: center;
     font-family: 'Segoe UI';
@@ -34,12 +32,58 @@ body, html {
         color: #A9A4B2; /* menu lightgray */
     }
 
-#roomlist-vanilla {
+/* expando list, flex that needs wrap on really small displays */
+#regionlist-group {
     margin-left: auto;
     margin-right: auto;
     margin-top: 0.8em;
     margin-bottom: 0.8em;
     width: fit-content;
+    max-width: 100vw;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+    /* re-center after wrap */
+    #regionlist-group > div {
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    /* fancy ass animations for stuff poping in */
+    #regionlist-modded {
+        display: block;
+        transition: opacity 0.2s, width 0.4s;
+    }
+
+        #regionlist-modded.rl-hidden {
+            opacity: 0;
+        }
+
+        #regionlist-modded > .rw-button {
+            transition: width 0.4s, margin 0.4s, padding 0.4s;
+            white-space: nowrap;
+        }
+
+        #regionlist-modded.rl-hidden > .rw-button {
+            transition: width 0.4s, margin 0.4s, padding 0.4s;
+            width: 0px;
+            margin-left: 0;
+            margin-right: 0;
+            padding-left: 0;
+            padding-right: 0;
+        }
+
+#modded-ckb-group {
+    margin-left: auto;
+    margin-right: auto;
+    width: fit-content;
+}
+
+/* FONTS */
+@font-face {
+    font-family: "Rodondo";
+    src: url(resources/Rodondo.otf) format("OpenType");
 }
 
 .rw-title {
@@ -61,8 +105,7 @@ body, html {
     font-weight: 600;
 }
 
-/* Magic button animation start */
-
+/* RW BUTTON START */
 @keyframes border-blinker {
     50% {
         border: 0.16em solid rgba(255,255,255,255);
@@ -102,7 +145,7 @@ body, html {
         content: "";
         box-sizing: content-box;
         position: absolute;
-        top: -0.12em; /* magic numbres, please fix me */
+        top: -0.12em; /* magic numbers, please fix me im so likely to break */
         left: -0.12em;
         width: 100%;
         height: 100%;
@@ -111,10 +154,69 @@ body, html {
         transition: transform 0.3s, border 0.3s;
     }
 
-    /* note: properly doing bump behaviour would require keyframe and then there's no easy way to have the animation play back on mouse out (requires javascript event handling it seems)*/
-    .rw-button:hover::before {
-        transform: scaleX(1.04) scaleY(1.2); /* adjust here */
-        border: 0.16em solid white;
+        /* note: properly doing bump behaviour would require keyframe and then there's no easy way to have the animation play back on mouse out (requires javascript event handling it seems)*/
+        .rw-button:hover::before {
+            transform: scaleX(1.04) scaleY(1.2); /* adjust here */
+            border: 0.16em solid white;
+        }
+/* RW BUTTON END */
+/* RW CHECKBOX START */
+.rw-checkbox {
+    appearance: none;
+    box-sizing: content-box;
+    border-radius: 0.8em;
+    border: 0.16em solid #A9A4B200;
+    background-color: black;
+    color: #A9A4B2; /* menu lightgray */
+    width: 2.4em;
+    height: 2.4em;
+    position: relative;
+    margin: 0.2em;
+}
+    .rw-checkbox:hover {
+        animation: border-blinker 0.5s linear infinite, flasher 0.3s;
+        color: white;
     }
 
-/* Magic button animation end */
+    .rw-checkbox::before { /* outline that expands */
+        content: "\2714";
+        text-align: center;
+        font-size: 1.6em;
+        font-weight: 600;
+        color: #A9A4B200;
+        box-sizing: content-box;
+        position: absolute;
+        top: -0.08em; /* magic numbers, please fix me im so likely to break */
+        left: -0.08em;
+        width: 100%;
+        height: 100%;
+        border-radius: inherit;
+        border: 0.14em solid #A9A4B2; /* menu lightgray */
+        transition: transform 0.3s, border 0.3s;
+    }
+
+        .rw-checkbox:hover::before {
+            border: 0.136em solid white;
+            transform: scaleX(1.2) scaleY(1.2);
+            color: #A9A4B288;
+        }
+
+        .rw-checkbox:active::before {
+            border: 0.136em solid white;
+            transform: scaleX(1) scaleY(1);
+            color: white;
+        }
+
+        .rw-checkbox:checked::before {
+            border: 0.136em solid white;
+            color: white;
+        }
+
+    .rw-checkbox + label {
+        position: relative;
+        bottom: 0.8em;
+        left: 0.8em;
+        padding-right: 0.8em;
+        user-select: none;
+    }
+/* RW CHECKBOX END */
