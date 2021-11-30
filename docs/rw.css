@@ -6,28 +6,24 @@
 body, html {
     background-color: black;
     color: white;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
 }
 
 #main-menu {
     margin: auto;
-    height: fit-content;
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    right: 0;
 }
 
 #main-menu-footer {
-    position: fixed;
-    left: 0;
-    bottom: 0;
-    width: 100%;
+    margin-top: auto;
+    margin-bottom: 0.1em;
     text-align: center;
     font-family: 'Segoe UI';
     font-size: 0.8em;
     font-weight: 500;
-    margin-bottom: 0.1em;
     color: #A9A4B2; /* menu lightgray */
     background-color: black;
 }
@@ -37,6 +33,14 @@ body, html {
     #main-menu-footer a:visited {
         color: #A9A4B2; /* menu lightgray */
     }
+
+#roomlist-vanilla {
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 0.8em;
+    margin-bottom: 0.8em;
+    width: fit-content;
+}
 
 .rw-title {
     font-family: "Rodondo";
@@ -55,14 +59,6 @@ body, html {
     font-family: 'Segoe UI';
     font-size: 1em;
     font-weight: 600;
-}
-
-#roomlist-vanilla {
-    margin-left: auto;
-    margin-right: auto;
-    margin-top: 1em;
-    margin-bottom: 1em;
-    width: fit-content;
 }
 
 /* Magic button animation start */
