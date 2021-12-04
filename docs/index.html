@@ -2,74 +2,156 @@
 <html>
 <head>
 
-<meta charset="ISO-8859-1">
-<title>Rain World Interactive Map</title>
-    
-<meta property="og:image" content="https://avatars0.githubusercontent.com/u/7621953?s=400&amp;v=4" />
-<meta property="og:site_name" content="GitHub" /><meta property="og:type" content="object" />
-<meta property="og:title" content="Rain World Interactive Map" />
-<meta property="og:url" content="https://henpemaz.github.io/Rain-World-Interactive-Map/index.html" />
-<meta property="og:description" content="A Rain World interactive map using leaflet and GeoJSON data exported from the game files. - henpemaz/Rain-World-Interactive-Map" />
+    <meta charset="ISO-8859-1">
+    <title>Rain World Interactive Map</title>
 
-<link rel="stylesheet" href="./rw.css" />
+    <meta property="og:image" content="https://avatars0.githubusercontent.com/u/7621953?s=400&amp;v=4" />
+    <meta property="og:site_name" content="GitHub" />
+    <meta property="og:type" content="object" />
+    <meta property="og:title" content="Rain World Interactive Map" />
+    <meta property="og:url" content="https://henpemaz.github.io/Rain-World-Interactive-Map/index.html" />
+    <meta property="og:description" content="A Rain World interactive map using leaflet and GeoJSON data exported from the game files. - henpemaz/Rain-World-Interactive-Map" />
+
+    <link rel="stylesheet" href="./rw.css" />
+    <style>
+        /* big flex block of darkness */
+        body, html {
+            background-color: black;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* floaty in the center */
+        #main-menu {
+            margin: auto;
+        }
+
+        /* stuck to the bottom, custom link colors */
+        #main-menu-footer {
+            margin-bottom: 0.1em;
+            text-align: center;
+            font-family: 'Segoe UI';
+            font-size: 0.8em;
+            font-weight: 500;
+            color: #A9A4B2; /* menu lightgray */
+            background-color: black;
+        }
+
+            #main-menu-footer a:link {
+                color: white;
+            }
+
+            #main-menu-footer a:visited {
+                color: #A9A4B2; /* menu lightgray */
+            }
+
+        /* expando list, flex that needs wrap on really small displays */
+        #regionlist-group {
+            margin-left: auto;
+            margin-right: auto;
+            margin-top: 0.8em;
+            margin-bottom: 0.8em;
+            width: fit-content;
+            max-width: 100vw;
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+        }
+            /* re-center after wrap */
+            #regionlist-group > div {
+                margin-left: auto;
+                margin-right: auto;
+            }
+
+        /* fancy ass animations for stuff poping in */
+        #regionlist-modded {
+            display: block;
+            transition: opacity 0.2s, width 0.4s;
+        }
+
+            #regionlist-modded.rl-hidden {
+                opacity: 0;
+            }
+
+            #regionlist-modded > .rw-button {
+                transition: width 0.4s, margin 0.4s, padding 0.4s;
+                white-space: nowrap;
+            }
+
+            #regionlist-modded.rl-hidden > .rw-button {
+                transition: width 0.4s, margin 0.4s, padding 0.4s;
+                width: 0px;
+                margin-left: 0;
+                margin-right: 0;
+                padding-left: 0;
+                padding-right: 0;
+            }
+
+        #modded-ckb-group {
+            margin-left: auto;
+            margin-right: auto;
+            width: fit-content;
+        }
+    </style>
 
 </head>
 <body>
-    <div id="main-menu">
+    <form id="main-menu" action="map.html" method="get">
         <div class="rw-title">Rain World</div>
         <div class="rw-bigtext" style="text-align: center; margin-top:0.5em;">I'm lost in...</div>
         <div id="regionlist-group">
             <div id="regionlist-vanilla">
-                <button class="rw-button rw-text">OUTSKIRTS</button><br />
-                <button class="rw-button rw-text">INDUSTRIAL COMPLEX</button><br />
-                <button class="rw-button rw-text">DRAINAGE SYSTEM</button><br />
-                <button class="rw-button rw-text">CHIMNEY CANOPY</button><br />
-                <button class="rw-button rw-text">GARBAGE WASTES</button><br />
-                <button class="rw-button rw-text">SHADED CITADEL</button><br />
-                <button class="rw-button rw-text">SHORELINE</button><br />
-                <button class="rw-button rw-text">SKY ISLANDS</button><br />
-                <button class="rw-button rw-text">FARM ARRAYS</button><br />
-                <button class="rw-button rw-text">THE EXTERIOR</button><br />
-                <button class="rw-button rw-text">FIVE PEBBLES</button><br />
-                <button class="rw-button rw-text">SUBTERRANEAN</button><br />
+                <button class="rw-button rw-text" name="region" value="SU">OUTSKIRTS</button><br />
+                <button class="rw-button rw-text" name="region" value="HI">INDUSTRIAL COMPLEX</button><br />
+                <button class="rw-button rw-text" name="region" value="DS">DRAINAGE SYSTEM</button><br />
+                <button class="rw-button rw-text" name="region" value="CC">CHIMNEY CANOPY</button><br />
+                <button class="rw-button rw-text" name="region" value="GW">GARBAGE WASTES</button><br />
+                <button class="rw-button rw-text" name="region" value="SH">SHADED CITADEL</button><br />
+                <button class="rw-button rw-text" name="region" value="SL">SHORELINE</button><br />
+                <button class="rw-button rw-text" name="region" value="SI">SKY ISLANDS</button><br />
+                <button class="rw-button rw-text" name="region" value="LF">FARM ARRAYS</button><br />
+                <button class="rw-button rw-text" name="region" value="UW">THE EXTERIOR</button><br />
+                <button class="rw-button rw-text" name="region" value="SS">FIVE PEBBLES</button><br />
+                <button class="rw-button rw-text" name="region" value="SB">SUBTERRANEAN</button><br />
             </div>
             <div id="regionlist-modded" class="rl-hidden">
-                <button class="rw-button rw-text">MODSKIRTS</button><br />
-                <button class="rw-button rw-text">INDUSTRIAL MODPLEX</button><br />
-                <button class="rw-button rw-text">MODDAGE SYSTEM</button><br />
-                <button class="rw-button rw-text">CHIMNEY MODPY</button><br />
-                <button class="rw-button rw-text">GARBAGE MODS</button><br />
-                <button class="rw-button rw-text">MODDED CITADEL</button><br />
-                <button class="rw-button rw-text">CONNECTIONLINE</button><br />
-                <button class="rw-button rw-text">MOD ISLANDS</button><br />
-                <button class="rw-button rw-text">MOD ARRAYS</button><br />
-                <button class="rw-button rw-text">THE MOD</button><br />
-                <button class="rw-button rw-text">FIVE MODDLES</button><br />
-                <button class="rw-button rw-text">MODTERRANEAN</button><br />
+                <button class="rw-button rw-text" name="region" value="AB">ARID BARRENS</button><br />
+                <button class="rw-button rw-text" name="region" value="AR">AETHER RIDGE</button><br />
+                <button class="rw-button rw-text" name="region" value="BL">BADLANDS</button><br />
+                <button class="rw-button rw-text" name="region" value="CG">CONCEALED GARDEN</button><br />
+                <button class="rw-button rw-text" name="region" value="DW">DESERTED WASTELANDS</button><br />
+                <button class="rw-button rw-text" name="region" value="LP">FORGOTTEN BOILER</button><br />
+                <button class="rw-button rw-text" name="region" value="LW">LUSH MIRE</button><br />
+                <button class="rw-button rw-text" name="region" value="TM">THE MAST</button><br />
+                <button class="rw-button rw-text" name="region" value="UB">UNDERBELLY</button><br />
+                <button class="rw-button rw-text" name="region" value="US">UNDERSEA</button><br />
             </div>
         </div>
-        <div id="modded-ckb-group"><input type="checkbox" id="modded-ckb" class="rw-checkbox" autocomplete="off"/><label for="modded-ckb" class="rw-text">Modded</label></div>
+        <div id="modded-ckb-group"><input type="checkbox" id="modded-ckb" name="modded" class="rw-checkbox" autocomplete="off"/><label for="modded-ckb" class="rw-text">Modded</label></div>
         <script>
             var updateVisibility = function () {
-                var ckb = document.getElementById('modded-ckb');
-                var moddedRegions = document.getElementById('regionlist-modded');
+                let ckb = document.getElementById('modded-ckb');
+                let moddedRegions = document.getElementById('regionlist-modded');
                 if (ckb.checked) {
                     moddedRegions.classList.remove("rl-hidden");
                 } else {
                     moddedRegions.classList.add("rl-hidden")
                 }
             };
-            document.addEventListener("DOMContentLoaded", function () {
-                updateVisibility();
-                document.getElementById('modded-ckb').onchange = updateVisibility;
-            });
-            // fuck you, whatever form-restore mechanism is in play here
+            document.addEventListener("DOMContentLoaded", updateVisibility);
+            // fuck you, whatever restore mechanism is in play here
             window.onload = function () {
                 updateVisibility();
+                setTimeout(updateVisibility, 100); // "restoring" a closed tab fires through events and then later... overrides classlists ??
             };
+            document.getElementById('modded-ckb').onchange = updateVisibility;
         </script>
 
-    </div>
+    </form>
     <div id="main-menu-footer"><a href="https://github.com/henpemaz/">Henpemaz</a> 2021 | <a href="https://store.steampowered.com/app/312520/Rain_World/">Rain World</a> is property of <a href="https://twitter.com/VideocultMedia">Videocult</a></div>
 </body>
 </html>

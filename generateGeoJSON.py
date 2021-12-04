@@ -1,10 +1,11 @@
 import os
 import json, geojson
 import re, collections
-import numpy as np, numpy.linalg as la
 import statistics
+import colorsys
 
 
+import numpy as np, numpy.linalg as la
 from PIL import Image
 
 # making python more pythonic smh
@@ -25,6 +26,12 @@ def joinCI(path, *target, must_be_folder=False):
 def RectanglesOverlap(p1, p2, p3, p4):
     return p1[0] <= p4[0] and p2[0] >= p3[0] and p1[1] <= p4[1] and p2[1] >= p3[1]
 
+def collinear(p0, p1, p2):
+    x1, y1 = p1[0] - p0[0], p1[1] - p0[1]
+    x2, y2 = p2[0] - p0[0], p2[1] - p0[1]
+    return abs(x1 * y2 - x2 * y1) < 1e-12
+
+
 with open("config.json") as config_file:
     config = json.load(config_file)
 
@@ -36,11 +43,14 @@ world_folder = joinCI(game_root, "World")
 gates_folder = joinCI(world_folder, "Gates")
 regions_folder = joinCI(world_folder, "Regions")
 
-debug_one_region = True
+debug_one_region = False
+optimize_geometry = True
 
-task_export_region_meta = True
 task_export_tiles = False
-task_export_room_features = True
+task_export_features = True
+task_export_room_features = False
+task_export_connection_features = True
+task_export_geo_features = False
 
 for entry in os.scandir(screenshots_root):
     if not entry.is_dir() and not len(entry.name) == 2:
@@ -87,19 +97,274 @@ for entry in os.scandir(screenshots_root):
 
     ## Find 'average fg color'
     fg_col = tuple((np.array(statistics.mode(tuple(tuple(col) for col in regiondata['fgcolors']))) * 255).astype(int).tolist())
+    bg_col = tuple((np.array(statistics.mode(tuple(tuple(col) for col in regiondata['bgcolors']))) * 255).astype(int).tolist())
+    sc_col = tuple((np.array(statistics.mode(tuple(tuple(col) for col in regiondata['sccolors']))) * 255).astype(int).tolist())
     print(f"got fg_col {fg_col}")
+    print(f"got bg_col {bg_col}")
+    print(f"got sc_col {sc_col}")
 
     dim = cam_max - cam_min
 
-    if task_export_region_meta:
-        regionmeta = {}
-        regionmeta["fgcolor"] = fg_col
+    if task_export_features:
+        features = {}
+        target = os.path.join(output_folder, entry.name)
+        if os.path.exists(target):
+            with open(os.path.join(target, "region.json"), 'r') as myin:
+                features = json.load(myin)
+
+        ## Colors
+        features["highlightcolor"] = bg_col
+        features["bgcolor"] = fg_col
+        features["shortcutcolor"] = sc_col
+
+        bh,bs,bv = colorsys.rgb_to_hsv(bg_col[0]/255.0,bg_col[1]/255.0,bg_col[2]/255.0)
+        fh,fs,fv = colorsys.rgb_to_hsv(fg_col[0]/255.0,fg_col[1]/255.0,fg_col[2]/255.0)
+        # find good contrastign color
+        if abs(bh - fh) < 0.5:
+            if bh < fh:
+                bh += 1
+            else:
+                fh += 1
+        if bs == 0 and fs == 0:
+            sh = 0.5
+        else:
+            #sh = (bh*bs + fh*fs)**2/4/(bs*fs)
+            sh = (bh*fs + fh*bs)/(bs+fs)
+        while sh > 1:
+            sh -= 1
+        while sh < 0:
+            sh += 1
+        ss = ((bs**2 + fs**2)/2.0)**0.5
+        sv = ((bv**2 + fv**2)/2.0)**0.5
+        if ss < 0.2:
+            ss = 0.3 - ss/2.0
+        if sv < 0.3:
+            sv = 0.45 - sv/2.0
+        sr,sg,sb = colorsys.hsv_to_rgb(sh,ss,sv)
+        features["geocolor"] = (int(sr*255),int(sg*255),int(sb*255))
+        
+
+        ## Rooms
+        if task_export_room_features:
+            room_features = []
+            features["room_features"] = room_features
+            for roomname, room in regiondata['rooms'].items():
+                roomcoords = room['roomcoords']
+
+                if room['cameras'] == None:
+                    coords = np.array([roomcoords, roomcoords + np.array([0,ofscreensize[1]]), roomcoords + ofscreensize, roomcoords + np.array([ofscreensize[0], 0]), roomcoords]).round(3).tolist()
+                    popupcoords = (roomcoords + ofscreensize + np.array([(-ofscreensize[0]/2, 0)])).round().tolist()[0] # single coord
+                else:
+                    roomcam_min = room['camcoords'][0]
+                    roomcam_max = room['camcoords'][0]
+                    for camcoords in room['camcoords']:
+                        roomcam_min = np.min([roomcam_min, camcoords],0)
+                        roomcam_max = np.max([roomcam_max, camcoords + camsize],0)
+                    coords = np.array([roomcam_min, (roomcam_min[0], roomcam_max[1]), roomcam_max, (roomcam_max[0], roomcam_min[1]), roomcam_min]).round(3).tolist()
+                    popupcoords = (roomcam_max - np.array([((roomcam_max[0] - roomcam_min[0]), 0)])/2).round().tolist()[0] # single coord
+                #print(f"room {roomname} coords are {coords}")
+                room_features.append(geojson.Feature(
+                    geometry=geojson.Polygon([coords,]), # poly expect a list containing a list of coords for each continuous edge
+                    properties={
+                        "name":roomname,
+                        "popupcoords":popupcoords
+                    }))
+
+        ## Connections
+        if task_export_connection_features:
+            connection_features = []
+            done = []
+            features["connection_features"] = connection_features
+            four_directions = [np.array([-1,0]),np.array([0,-1]),np.array([1,0]),np.array([0,1])]
+            center_of_tile = np.array([10,10])
+            for conn in regiondata["connections"]:
+                if not conn["roomA"] in regiondata['rooms'] or not conn["roomB"] in regiondata['rooms']:
+                    print("connection for missing rooms: " + conn["roomA"] + " " + conn["roomB"])
+                    continue
+                if (conn["roomA"],conn["roomB"]) in done or (conn["roomB"],conn["roomA"]) in done:
+                    print("connection repeated for rooms: " + conn["roomA"] + " " + conn["roomB"])
+                    continue
+
+                coordsA = regiondata['rooms'][conn["roomA"]]["roomcoords"] + np.array(conn["posA"])*20 + center_of_tile
+                coordsB = regiondata['rooms'][conn["roomB"]]["roomcoords"] + np.array(conn["posB"])*20 + center_of_tile
+                dist = np.linalg.norm(coordsA - coordsB)*0.25
+                handleA = coordsA - four_directions[conn["dirA"]] * dist
+                handleB = coordsB - four_directions[conn["dirB"]] * dist
+                connection_features.append(geojson.Feature(
+                    geometry=geojson.LineString(np.array([coordsA,handleA,handleB,coordsB]).round().tolist()),
+                    properties={
+
+                    }))
+                done.append((conn["roomA"],conn["roomB"]))
+        
+        ## Geometry
+        if task_export_geo_features:
+            geo_features = []
+            features["geo_features"] = geo_features
+            for roomname, room in regiondata['rooms'].items():
+                print("processing geo for " + roomname)
+                if room['size'] is None:
+                    # geo_features.append(geojson.Feature(geojson.MultiLineString([])))
+                    continue
+                alllines = []
+                currentrow = []
+                previousrow = []
+                size_x = room['size'][0]
+                size_y = room['size'][1]
+                tiles = [[room['tiles'][x * size_y + y] for x in range(size_x)] for y in range(size_y)]
+                roomcoords = room['roomcoords']
+                for y in range(size_y):
+                    for x in range(size_x):
+                        ## self imposed pragma!
+                        # lines must be so that its points are declared in order of increasing X and Y
+                        # slopes though just need a consistent behavior all across
+                        lines = [] # line buffer
+                        if tiles[y][x][0] == 0: # Air tile
+                            if (0 <= x+1 < size_x) and (tiles[y][x+1][0] == 1):
+                                lines.append(np.array([roomcoords + center_of_tile + 20*np.array([x+0.5, y-0.5]),roomcoords + center_of_tile + 20*np.array([x+0.5, y+0.5])]))
+                            if (0 <= y+1 < size_y) and (tiles[y+1][x][0] == 1):
+                                lines.append(np.array([roomcoords + center_of_tile + 20*np.array([x-0.5, y+0.5]),roomcoords + center_of_tile + 20*np.array([x+0.5, y+0.5])]))
+                        if tiles[y][x][0] == 1: # Solid tile
+                            if (0 <= x+1 < size_x) and (tiles[y][x+1][0] == 0):
+                                lines.append(np.array([roomcoords + center_of_tile + 20*np.array([x+0.5, y-0.5]),roomcoords + center_of_tile + 20*np.array([x+0.5, y+0.5])]))
+                            if (0 <= y+1 < size_y) and (tiles[y+1][x][0] == 0):
+                                lines.append(np.array([roomcoords + center_of_tile + 20*np.array([x-0.5, y+0.5]),roomcoords + center_of_tile + 20*np.array([x+0.5, y+0.5])]))
+
+                        # For slopes you need to find their orientation
+                        if tiles[y][x][0] == 2: # Slope tile
+                            if (0 <= x-1 < size_x)  and tiles[y][x-1][0] == 1:
+                                if (0 <= y-1 < size_y)  and tiles[y-1][x][0] == 1:
+                                    lines.append(np.array([roomcoords + center_of_tile + 20*np.array([x-0.5, y+0.5]),roomcoords + center_of_tile + 20*np.array([x+0.5, y-0.5])]))
+                                elif (0 <= y+1 < size_y)  and tiles[y+1][x][0] == 1:
+                                    lines.append(np.array([roomcoords + center_of_tile + 20*np.array([x-0.5, y-0.5]),roomcoords + center_of_tile + 20*np.array([x+0.5, y+0.5])]))
+                            elif (0 <= x+1 < size_x)  and tiles[y][x+1][0] == 1:
+                                if (0 <= y-1 < size_y)  and tiles[y-1][x][0] == 1:
+                                    lines.append(np.array([roomcoords + center_of_tile + 20*np.array([x-0.5, y-0.5]),roomcoords + center_of_tile + 20*np.array([x+0.5, y+0.5])]))
+                                elif (0 <= y+1 < size_y)  and tiles[y+1][x][0] == 1:
+                                    lines.append(np.array([roomcoords + center_of_tile + 20*np.array([x-0.5, y+0.5]),roomcoords + center_of_tile + 20*np.array([x+0.5, y-0.5])]))
+
+                        # Half floors are a pair of lines and possibly more lines to the sides
+                        if tiles[y][x][0] == 3: # Half-floor
+                            if (0 <= x-1 < size_x) and tiles[y][x-1][0] == 0: # Air to the left
+                                lines.append(np.array([roomcoords + center_of_tile + 20*np.array([x-0.5, y]),roomcoords + center_of_tile + 20*np.array([x-0.5, y+0.5])]))
+                            elif (0 <= x-1 < size_x) and tiles[y][x-1][0] == 1: # solid to the left
+                                lines.append(np.array([roomcoords + center_of_tile + 20*np.array([x-0.5, y-0.5]),roomcoords + center_of_tile + 20*np.array([x-0.5, y])]))
+                            if not (tiles[y][x][1] & 1): # gotcha, avoid duplicated line
+                                lines.append(np.array([roomcoords + center_of_tile + 20*np.array([x-0.5, y]),roomcoords + center_of_tile + 20*np.array([x+0.5, y])]))
+                            lines.append(np.array([roomcoords + center_of_tile + 20*np.array([x-0.5, y+0.5]),roomcoords + center_of_tile + 20*np.array([x+0.5, y+0.5])]))
+                            if (0 <= x+1 < size_x) and tiles[y][x+1][0] == 0: # Air to the right
+                                lines.append(np.array([roomcoords + center_of_tile + 20*np.array([x+0.5, y]),roomcoords + center_of_tile + 20*np.array([x+0.5, y+0.5])]))
+                            elif (0 <= x+1 < size_x) and tiles[y][x+1][0] == 1: # solid to the right
+                                lines.append(np.array([roomcoords + center_of_tile + 20*np.array([x+0.5, y-0.5]),roomcoords + center_of_tile + 20*np.array([x+0.5, y])]))
+                        # Poles
+                        if tiles[y][x][1] & 2: # vertical
+                            lines.append(np.array([roomcoords + center_of_tile + 20*np.array([x, y-0.5]),roomcoords + center_of_tile + 20*np.array([x, y+0.5])]))
+
+                        if tiles[y][x][1] & 1: # Horizontal
+                            lines.append(np.array([roomcoords + center_of_tile + 20*np.array([x-0.5, y]),roomcoords + center_of_tile + 20*np.array([x+0.5, y])]))
+                    
+                        if not optimize_geometry:
+                            currentrow.extend(lines)
+                            continue
+                        ## reduce considering recent elements
+                        for line in lines:
+                            cand = None
+                            candFrom = None
+                            for part in currentrow:
+                                if np.array_equal(part[-1], line[0]):
+                                    if collinear(part[-2], line[0], line[1]):
+                                        part[-1] = line[1]
+                                        line = None
+                                        break
+                                    elif cand is None:
+                                        cand = part
+                                        candFrom = currentrow
+                            if line is None:
+                                continue
+                            for part in previousrow:
+                                if np.array_equal(part[-1], line[0]):
+                                    if collinear(part[-2], line[0], line[1]):
+                                        part[-1] = line[1]
+                                        line = None
+                                        previousrow = [p for p in previousrow if p is not part]
+                                        currentrow.append(part)
+                                        break
+                                    elif cand is None:
+                                        cand = part
+                                        candFrom = previousrow;
+                            if line is None:
+                                continue
+                            if cand is None:
+                                currentrow.append(line)
+                                continue
+                        
+                            newcand = np.append(cand, [line[1]],0)
+                            if candFrom is currentrow:
+                                currentrow = [p for p in currentrow if p is not cand]
+                            else:
+                                previousrow = [p for p in previousrow if p is not cand]
+                            currentrow.append(newcand)
+
+                    alllines.extend([p.round().tolist() for p in previousrow])
+                    previousrow = currentrow
+                    currentrow = []
+                alllines.extend([p.round().tolist() for p in previousrow])
+                if optimize_geometry:
+                    ## reduce considering all elements
+                    alreadychecked = []
+                    for n in range(len(alllines)): # max iterations
+                        touched = False
+                        for lineA in alllines:
+                            for lineB in alllines:
+                                if lineA is lineB:
+                                    continue # my my I didn't recall being this dumb
+                                if np.array_equal(lineA[-1], lineB[0]):
+                                    lineA.extend(lineB[1:])
+                                    touched = True
+                                    alllines.remove(lineB)
+                                    break
+                                if np.array_equal(lineA[0], lineB[-1]):
+                                    lineB.extend(lineA[1:])
+                                    touched = True
+                                    alllines.remove(lineA)
+                                    break
+                                if np.array_equal(lineA[0], lineB[0]):
+                                    lineA.reverse()
+                                    lineA.extend(lineB[1:])
+                                    touched = True
+                                    alllines.remove(lineB)
+                                    break
+                                if np.array_equal(lineA[-1], lineB[-1]):
+                                    lineA.extend(list(reversed(lineB))[1:])
+                                    touched = True
+                                    alllines.remove(lineB)
+                                    break
+                            if touched:
+                                break
+                            alllines.remove(lineA)
+                            alreadychecked.append(lineA)
+
+                        if not touched:
+                            break
+                    alllines += alreadychecked
+                #for line in alllines:
+                #    geo_features.append(geojson.Feature(
+                #    geometry=geojson.LineString(line),
+                #    properties={
+
+                #    }))
+                geo_features.append(geojson.Feature(
+                    geometry=geojson.MultiLineString(alllines),
+                    properties={
+                        "room":roomname
+                    }))
+        
         target = os.path.join(output_folder, entry.name)
         if not os.path.exists(target):
             os.makedirs(target, exist_ok=True)
         with open(os.path.join(target, "region.json"), 'w') as myout:
-            json.dump(regionmeta,myout)
-        pass
+            json.dump(features,myout)
+        print("done with features task")
 
     if task_export_tiles:
         ## Building image tiles for each zoom level
@@ -173,40 +438,14 @@ for entry in os.scandir(screenshots_root):
                         tile = None
         print("done with tiles task")
 
-    if task_export_room_features:
-        room_features = []
-        for roomname, room in regiondata['rooms'].items():
-            roomcoords = room['roomcoords']
 
-            if room['cameras'] == None:
-                coords = np.array([roomcoords, roomcoords + np.array([0,ofscreensize[1]]), roomcoords + ofscreensize, roomcoords + np.array([ofscreensize[0], 0]), roomcoords]).round(3).tolist()
-                popupcoords = (roomcoords + ofscreensize + np.array([(-ofscreensize[0]/2, 0)])).round(3).tolist()[0] # single coord
-            else:
-                roomcam_min = room['camcoords'][0]
-                roomcam_max = room['camcoords'][0]
-                for camcoords in room['camcoords']:
-                    roomcam_min = np.min([roomcam_min, camcoords],0)
-                    roomcam_max = np.max([roomcam_max, camcoords + camsize],0)
-                coords = np.array([roomcam_min, (roomcam_min[0], roomcam_max[1]), roomcam_max, (roomcam_max[0], roomcam_min[1]), roomcam_min]).round(3).tolist()
-                popupcoords = (roomcam_max - np.array([((roomcam_max[0] - roomcam_min[0]), 0)])/2).round(3).tolist()[0] # single coord
-            #print(f"room {roomname} coords are {coords}")
-            room_features.append(geojson.Feature(
-                geometry=geojson.Polygon([coords,]), # poly expect a list containing a list of coords for each continuous edge
-                properties={
-                    "name":roomname,
-                    "popupcoords":popupcoords
-                }))
-
-        target = os.path.join(output_folder, entry.name)
-        if not os.path.exists(target):
-            os.makedirs(target, exist_ok=True)
-        with open(os.path.join(target, "rooms.geojson"), 'w') as myout:
-            geojson.dump(room_features,myout)
-        print("done with room features task")
-
-
+##
+##
+##
 
 ## old stuff below, to be reused for spawns I suppose
+
+
 
 class Region:
     """
@@ -497,7 +736,6 @@ class Region:
                                 lines.append((self.center_of_tile_to_devmap(x+0.5, y+0.5),self.center_of_tile_to_devmap(x-0.5, y-0.5)))
                             elif (0 <= y+1 < self.size_y)  and self.tiles[y+1][x][0] == 1:
                                 lines.append((self.center_of_tile_to_devmap(x+0.5, y-0.5),self.center_of_tile_to_devmap(x-0.5, y+0.5)))
-
 
                     # Half floors are a pair of lines
                     if self.tiles[y][x][0] == 3: # Half-floor

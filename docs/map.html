@@ -3,7 +3,7 @@
 <head>
 
     <meta charset="ISO-8859-1">
-    <title>Rain World Interactive Map v2</title>
+    <title>Rain World Interactive Map</title>
 
     <meta property="og:image" content="https://avatars0.githubusercontent.com/u/7621953?s=400&amp;v=4" />
     <meta property="og:site_name" content="GitHub" />
@@ -14,24 +14,48 @@
 
     <link rel="stylesheet" href="./leaflet/leaflet.css" />
     <script src="./leaflet/leaflet-src.js"></script>
-    <script src="./leaflet/Leaflet.Marker.Stack/Leaflet.Marker.Stack.js"></script>
-    <script src="./leaflet/Leaflet.Marker.Stack/Leaflet.Icon.Chip.js"></script>
+    <script src="./beziero.js"></script>
 
-    <link rel="stylesheet" href="./map.css" />
+    <link rel="stylesheet" href="./rw.css" />
+    <style>
+        body, html {
+            height: 100%;
+            padding: 0;
+            margin: 0;
+        }
+
+        #mapid {
+            height: 100%;
+            padding: 0;
+            margin: 0;
+            background: black;
+        }
+
+        .room-labels {
+            opacity: 0.4;
+            pointer-events: auto;
+            padding-top: 3px;
+            padding-bottom: 3px;
+            color: white;
+            background-color: black;
+            border: none;
+        }
+    </style>
 
 </head>
 <body>
     <div id="mapid"></div>
     <script>
+        'use strict';
+
         // Utils
         function getJsonObject(url, cb, async = true) {
             // Todo abort requests on region switch
             // read text from URL location
-            var request = new XMLHttpRequest();
+            let request = new XMLHttpRequest();
             request.open('GET', url, async);
             request.onreadystatechange = function () {
                 if (request.readyState === 4 && request.status === 200) {
-                    var type = request.getResponseHeader('Content-Type');
                     try {
                         cb(JSON.parse(request.responseText));
                     } catch (err) {
@@ -39,41 +63,54 @@
                     }
                 }
             }
-            request.send(null);
+            request.send();
         }
+
+        // Params
+        let params = new URLSearchParams(document.location.search);
+        var region = params.get("region");
+        if (region == null) {
+            window.location.href = "index.html";
+        }
+        var modded = params.get("modded") == 'on' || ['SU', 'HI', 'DS', 'CC', 'GW', 'SH', 'SL', 'SI', 'LF', 'UW', 'SS', 'SB'].indexOf(region) == -1;
+        var room = params.get("room");
+
+        var folderpath = 'tiles/' + (modded ? 'modded' : 'vanilla') + '/' + region + '/';
 
         // Map
         var map = L.map('mapid', {
             minZoom: -7,
-            maxZoom: 0,
+            maxZoom: 3, // 8x
             crs: L.CRS.Simple
         });
+        map.setView([0, 0], -5);
 
         // Tileset layer
-        var tileLayer = L.tileLayer('tiles/modded/SU/{z}/{x}_{y}.png', {
-            attribution: "Rain World",
+        var tileLayer = L.tileLayer(folderpath + '{z}/{x}_{y}.png', {
+            attribution: "<a href=\"https://store.steampowered.com/app/312520/Rain_World/\">Rain World</a> by <a href=\"https://twitter.com/VideocultMedia\">Videocult</a>",
             minZoom: -7,
-            maxZoom: 0
+            maxZoom: 3,
+            maxNativeZoom: 0 // important, stop requesting tiles at this point
         }).addTo(map);
 
-        // Meta region stuff
-        getJsonObject("tiles/modded/SU/region.json", function (json) {
-            map.getContainer().style.backgroundColor = 'rgb(' + json["fgcolor"].join(',') + ')'; // I hate this with passion
-        }, true);
-
-        // Rooms
+        // Region stuff
         var roomsLayer;
         var lastRoomFocused;
-        var roomPopups = {};
-        getJsonObject("tiles/modded/SU/rooms.geojson", function (roomsjson) {
-            roomsLayer = L.geoJSON(roomsjson, {
+        var connectionsLayer;
+        var geometryLayer;
+        getJsonObject(folderpath + "region.json", function (json) {
+            // Background color
+            map.getContainer().style.backgroundColor = 'rgb(' + json["bgcolor"].join(',') + ')'; // I hate this with passion
+
+            // Room features and name popups
+            roomsLayer = L.geoJSON(json["room_features"], {
                 style: {
                     weight: 0,
-                    color: '#FFF',
+                    color: 'rgb(' + json["highlightcolor"].join(',') + ')',
                     fillOpacity: 0
                 },
                 onEachFeature: function (feature, layer) {
-                    //console.log("processing " + feature.properties.name);
+                    // Room focus stuff
                     layer.on({
                         mouseover: function (e) {
                             if (map.getZoom() < 0) {
@@ -83,23 +120,50 @@
                                 lastRoomFocused = e.target;
                             }
                         },
-                        mouseout: function (e) { roomsLayer.resetStyle(e.target); },
-                        click: function (e) { console.log("clicked on " + e.target.feature.properties.name); roomsLayer.resetStyle(e.target); map.fitBounds(e.target.getBounds()); }
+                        mouseout: function (e) { roomsLayer.resetStyle(e.target); if (lastRoomFocused == e.target) lastRoomFocused = null; },
+                        click: function (e) { roomsLayer.resetStyle(e.target); map.fitBounds(e.target.getBounds()); },
+                        tooltipopen: function (e) {
+                            e.tooltip.setLatLng(L.latLng([].concat(e.target.feature.properties.popupcoords).reverse()));
+                            e.tooltip.getElement().style.removeProperty('opacity'); // 'defaults' amirite
+                        },
                     });
-                    
-                    var popup = L.popup({ closeButton: false, closeOnClick:false });
-                    popup.setLatLng(L.latLng([].concat(feature.properties.popupcoords).reverse()));
-                    popup.setContent(feature.properties.name);
-                    map.addLayer(popup);
+
+                    layer.bindTooltip(feature.properties.name, { direction: "center", offset: [0, -14], interactive: true, className: "rw-text room-labels" });
                 }
             }).addTo(map);
             // remove room highlight on maxed zoom
-            map.on('zoomend', function () { if (map.getZoom() == 0 && lastRoomFocused) roomsLayer.resetStyle(lastRoomFocused); });
+            map.on('zoomend', function () { if (map.getZoom() >= 0 && lastRoomFocused) roomsLayer.resetStyle(lastRoomFocused); lastRoomFocused = null });
 
-            
+            // Zoom to room on rooms loaded
+            if (room != null) {
+                for (let l of roomsLayer.getLayers()) {
+                    if (l.feature.properties.name == room) {
+                        map.fitBounds(l.getBounds());
+                        break;
+                    }
+                }
+            }
+
+            // Connections
+            connectionsLayer = new L.BezierGeoJSON(json["connection_features"], {
+                color: 'rgba(' + json["shortcutcolor"].join(',') + ',0.72)', // so the white looks better
+                weight: 2,
+                lineCap: "butt", // hehe
+                dashArray: "5 8",
+                interactive: false,
+            }).addTo(map);
+
+            // Geometry
+            geometryLayer = L.geoJSON(json["geo_features"], {
+                interactive: false,
+                color: 'rgb(' + json["geocolor"].join(',') + ')',
+                weight: 2,
+                lineCap: "butt", // hehe
+                lineJoin: "miter",
+            }).addTo(map);
+
         }, true);
 
-        map.setView([0, 0], -5);
     </script>
 </body>
 </html>
