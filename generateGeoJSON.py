@@ -43,14 +43,15 @@ world_folder = joinCI(game_root, "World")
 gates_folder = joinCI(world_folder, "Gates")
 regions_folder = joinCI(world_folder, "Regions")
 
-debug_one_region = False
+debug_one_region = True
 optimize_geometry = True
 
 task_export_tiles = False
 task_export_features = True
 task_export_room_features = False
-task_export_connection_features = True
+task_export_connection_features = False
 task_export_geo_features = False
+task_export_spawn_features = True
 
 for entry in os.scandir(screenshots_root):
     if not entry.is_dir() and not len(entry.name) == 2:
@@ -68,13 +69,19 @@ for entry in os.scandir(screenshots_root):
     camsize = np.array([1366,768])
     camoffset = np.array([17, 18])
     ofscreensize = np.array([1200,400])
+
+    four_directions = [np.array([-1,0]),np.array([0,-1]),np.array([1,0]),np.array([0,1])]
+    center_of_tile = np.array([10,10])
+
     for roomname, room in regiondata['rooms'].items():
         room['roomcoords'] = np.array(room['devPos']) * 10 # map coord to room px coords
-        if room['cameras'] == None:
+        if room['cameras'] == None: # ofscreen
+            regiondata['offscreen'] = room
             room['camcoords'] = None
             continue
         else:
             room['camcoords'] = [room['roomcoords'] + (camoffset + np.array(camera)) for camera in room['cameras']]
+            room['tiles'] = [[room['tiles'][x * room['size'][1] + y] for x in range(room['size'][0])] for y in range(room['size'][1])]
     # out main map unit will be room px
     # because only that way we can have the full-res images being loaded with no scaling
 
@@ -175,8 +182,6 @@ for entry in os.scandir(screenshots_root):
             connection_features = []
             done = []
             features["connection_features"] = connection_features
-            four_directions = [np.array([-1,0]),np.array([0,-1]),np.array([1,0]),np.array([0,1])]
-            center_of_tile = np.array([10,10])
             for conn in regiondata["connections"]:
                 if not conn["roomA"] in regiondata['rooms'] or not conn["roomB"] in regiondata['rooms']:
                     print("connection for missing rooms: " + conn["roomA"] + " " + conn["roomB"])
@@ -211,7 +216,7 @@ for entry in os.scandir(screenshots_root):
                 previousrow = []
                 size_x = room['size'][0]
                 size_y = room['size'][1]
-                tiles = [[room['tiles'][x * size_y + y] for x in range(size_x)] for y in range(size_y)]
+                tiles = room['tiles']
                 roomcoords = room['roomcoords']
                 for y in range(size_y):
                     for x in range(size_x):
@@ -359,6 +364,79 @@ for entry in os.scandir(screenshots_root):
                         "room":roomname
                     }))
         
+
+        ## Spawns
+        if task_export_spawn_features:
+            spawn_features = []
+            features["spawn_features"] = spawn_features
+            print("creatures task!")
+            # read spawns, group spawns into dens (dens have a position)
+            dens = {}
+            for spawnentry in regiondata["spawns"]:
+                print("processing " + spawnentry)
+                if spawnentry.startswith("("):
+                    # TODO slugbase support
+                    difficulties = [int(s.strip()) for s in spawnentry[1:spawnentry.index(")")].split(",") if s.strip()]
+                    spawnentry = spawnentry[spawnentry.index(")")+1:]
+                    print("found filter for " + str(difficulties))
+                    print("remaining line: " + spawnentry)
+                else:
+                    difficulties = [0,1,2]
+                arr = spawnentry.split(" : ")
+                if arr[0] == "LINEAGE":
+
+                    spawn = {}
+                    spawn["difficulties"] = difficulties
+                    spawn["is_lineage"] = True
+                    creature_arr = arr[3].split(", ")
+                    spawn["lineage"] = [creature.split("-")[0] for creature in creature_arr]
+                    # TODO read creature attributes
+                    spawn["lineage_probs"] = [creature.split("-")[-1] for creature in creature_arr]
+                    spawn["creature"] = spawn["lineage"][0]
+                    spawn["amount"] = 1
+
+                    denkey = arr[1]+ ":" +arr[2] # room:den
+                    if denkey in dens:
+                        dens[denkey]["spawns"].append(spawn)
+                    else:
+                        dens[denkey] = {"room":arr[1],"den":int(arr[2]),"spawns":[spawn]}
+                else:
+                    creature_arr = arr[1].split(", ")
+                    room_name = arr[0]
+                    for creature_desc in creature_arr:
+                        spawn = {}
+                        spawn["difficulties"] = difficulties
+                        spawn["is_lineage"] = False
+                        den_index,spawn["creature"], *attr = creature_desc.split("-",2)
+                        
+                        spawn["amount"] = 1
+                        if attr:
+                            # TODO read creature attributes
+                            if not attr[0].endswith("}"):
+                                spawn["amount"] = int(attr[0].rsplit("-",1)[-1])
+                    
+                        if spawn["creature"] == "Spider 10": ## Bruh...
+                            continue ## Game doesnt parse it, so wont I
+                        denkey = room_name+ ":" +den_index # room:den
+                        if denkey in dens:
+                            dens[denkey]["spawns"].append(spawn)
+                        else:
+                            dens[denkey] = {"room":room_name,"den":int(den_index),"spawns":[spawn]}
+            ## process dens into features
+            for key,den in dens.items():
+                if den["room"] == "OFFSCREEN":
+                    room = regiondata['offscreen']
+                    dencoords = room['roomcoords'] + ofscreensize/2
+                else:
+                    room = regiondata["rooms"][den["room"]]
+                    dencoords = room['roomcoords'] + center_of_tile + 20* np.array(room['nodes'][den["den"]])
+                spawn_features.append(geojson.Feature(
+                    geometry=geojson.Point(np.array(dencoords).round().tolist()),
+                    properties=den))
+
+            print("creatures task done!")
+
+
         target = os.path.join(output_folder, entry.name)
         if not os.path.exists(target):
             os.makedirs(target, exist_ok=True)

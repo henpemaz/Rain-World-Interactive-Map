@@ -13,7 +13,7 @@
     <meta property="og:description" content="A Rain World interactive map using leaflet and GeoJSON data exported from the game files. - henpemaz/Rain-World-Interactive-Map" />
 
     <link rel="stylesheet" href="./leaflet/leaflet.css" />
-    <script src="./leaflet/leaflet-src.js"></script>
+    <script src="./leaflet/leaflet.js"></script>
     <script src="./beziero.js"></script>
 
     <link rel="stylesheet" href="./rw.css" />
@@ -40,6 +40,38 @@
             background-color: black;
             border: none;
         }
+
+        .spawn-divs {
+            display: flex;
+            justify-content: center;
+        }
+
+        .icon-image {
+            position: absolute;
+            margin-left: -25px;
+            margin-top: -25px;
+        }
+        .icon-label {
+            position: absolute;
+            font-weight: 900;
+            font-size: 100%;
+            color: white;
+            -webkit-text-fill-color: white; /* Will override color (regardless of order) */
+            -webkit-text-stroke-width: 1px;
+            -webkit-text-stroke-color: black;
+        }
+
+        .spawn-simple {
+            margin:16px;
+        }
+        .spawn-lineage {
+            margin: 16px;
+        }
+        .lineage-entry {
+            height: 25px;
+        }
+
+
     </style>
 
 </head>
@@ -98,6 +130,7 @@
         var lastRoomFocused;
         var connectionsLayer;
         var geometryLayer;
+        var densLayer;
         getJsonObject(folderpath + "region.json", function (json) {
             // Background color
             map.getContainer().style.backgroundColor = 'rgb(' + json["bgcolor"].join(',') + ')'; // I hate this with passion
@@ -162,7 +195,124 @@
                 lineJoin: "miter",
             }).addTo(map);
 
+            // Spawns
+            densLayer = L.geoJSON(json["spawn_features"], {
+                pointToLayer: function (feature, latlng) {
+                    let divhtml = "";
+                    for (let spawn of feature.properties.spawns) {
+                        if (spawn.is_lineage) {
+                            divhtml += '<div class="spawn-lineage">'
+                            for (let i = 0; i < spawn.lineage.length; i++) {
+                                divhtml += '<div class="lineage-entry"><img class="icon-image" src="./resources/icons/' + icon_by_name[spawn.lineage[i]] + '"/>' +
+                                    '<div class="icon-label">' + (spawn.lineage_probs[i] * 100) + '%</div></div>';
+                            }
+                            divhtml += '</div>';
+                        } else {
+                            divhtml += '<div class="spawn-simple"><img class="icon-image" src="./resources/icons/' + icon_by_name[spawn.creature] + '"/>' +
+                                '<div class="icon-label">x' + spawn.amount + '</div></div>';
+                        }
+                    }
+                    return L.marker(latlng, {
+                        icon: L.divIcon({
+                            className: 'spawn-divs',
+                            html: divhtml,
+                        })
+                    });
+                }
+            }).addTo(map);
+
         }, true);
+
+        // misc iconography but mostly Spawns
+        var icon_by_name = {
+            "clear": "00_clear.png",
+            "rock": "01_rock.png",
+            "spear": "02_spear.png",
+            "boomstick": "03_explosivespear.png",
+            "bomb": "04_explosivebomb.png",
+            "hive": "05_hive.png",
+            "lantern": "06_lantern.png",
+            "lure": "07_lureplant.png",
+            "mushroom": "08_mushroom.png",
+            "flashbang": "09_flashbomb.png",
+            "puffball": "10_puffball.png",
+            "waternut": "11_bubblefruit.png",
+            "firecrackerplant": "12_firecrackerplant.png",
+            "bluefruit": "13_bluefruit.png",
+            "jellyfish": "14_jellyfish.png",
+            "bubbleweed": "15_bubbleweed.png",
+            "slimemold": "16_slimemold.png",
+            "slugcat": "17_slugcat.png",
+            //## Creatures from the World File
+            "Green": "18_greenlizard.png",
+            "Pink": "19_pinklizard.png",
+            "Blue": "20_bluelizard.png",
+            "White": "21_whitelizard.png",
+            "Black": "22_molelizard.png",
+            "Yellow": "23_orangelizard.png",
+            "Cyan": "24_cyanlizard.png",
+            "Red": "25_redlizard.png",
+            "Salamander": "26_salamander.png",
+            "batfly": "27_batfly.png",
+            "CicadaA": "28_whitecicada.png",
+            "CicadaB": "29_darkcicada.png",
+            "Snail": "30_snailturtle.png",
+            "Leech": "31_redleech.png",
+            "Sea Leech": "32_blueleech.png",
+            "Mimic": "33_poleplant.png",
+            "TentaclePlant": "34_monsterkelp.png",
+            "Tentacle Plant": "34_monsterkelp.png",
+            "Scavenger": "35_scavenger.png",
+            "vulturegrub": "36_vulturegrub.png",
+            "Vulture": "37_vulture.png",
+            "KingVulture": "38_kingvulture.png",
+            "Small Centipede": "39_smallcentipede.png",
+            "Centipede": "40_centipede.png",
+            "Big Centipede": "41_bigcentipede.png",
+            "Red Centipede": "42_redcentipede.png",
+            "RedCentipede": "42_redcentipede.png",
+            "Centiwing": "43_flyingcentipede.png",
+            "grappleworm": "44_grappleworm.png",
+            "Tube": "44_grappleworm.png",
+            "TubeWorm": "44_grappleworm.png",
+            "Tube Worm": "44_grappleworm.png",
+            "hazer": "45_hazer.png",
+            "Lantern Mouse": "46_lanternmouse.png",
+            "Spider": "47_spider.png",
+            "BigSpider": "48_bigspider.png",
+            "Bigspider": "48_bigspider.png",
+            "SpitterSpider": "49_spitterspider.png",
+            "Miros Bird": "50_mirosbird.png",
+            "Miros": "50_mirosbird.png",
+            "Bro": "51_brotherlonglegs.png",
+            "Daddy": "52_daddylonglegs.png",
+            "Deer": "53_raindeer.png",
+            "EggBug": "54_bubblebug.png",
+            "Eggbug": "54_bubblebug.png",
+            "DropBug": "55_dropwig.png",
+            "Dropbug": "55_dropwig.png",
+            "DropWig": "55_dropwig.png",
+            "Dropwig": "55_dropwig.png",
+            "BigNeedleWorm": "56_noodlefly.png",
+            "SmallNeedleWorm": "57_babynoodlefly.png",
+            "Jet Fish": "58_jetfish.png",
+            "JetFish": "58_jetfish.png",
+            "Jetfish": "58_jetfish.png",
+            "Leviathan": "59_leviathan.png",
+            "randomitems": "60_randomitems_inactive.png",
+            "NONE": "63_none.png",
+
+
+
+            //## Difficulties
+            "survivor": "17_slugcat.png",
+            "hunter": "64_hunter.png",
+            "monk": "65_monk.png",
+
+
+            //## Missing stuff
+            "Garbage Worm": "00_clear.png",
+        }
 
     </script>
 </body>
