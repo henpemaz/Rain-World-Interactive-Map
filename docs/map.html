@@ -46,6 +46,26 @@
             justify-content: center;
         }
 
+        .spawn-entry {
+            display:none; /* to be overwritten */
+            margin-left: 16px;
+            margin-right: 16px;
+        }
+
+        .spawn-filter-0 {
+            
+        }
+        .spawn-filter-1 {
+            
+        }
+        .spawn-filter-2 {
+            display: initial;
+        }
+
+        .lineage-entry {
+            height: 24px;
+        }
+
         .icon-image {
             position: absolute;
             margin-left: -25px;
@@ -60,18 +80,6 @@
             -webkit-text-stroke-width: 1px;
             -webkit-text-stroke-color: black;
         }
-
-        .spawn-simple {
-            margin:16px;
-        }
-        .spawn-lineage {
-            margin: 16px;
-        }
-        .lineage-entry {
-            height: 25px;
-        }
-
-
     </style>
 
 </head>
@@ -200,15 +208,19 @@
                 pointToLayer: function (feature, latlng) {
                     let divhtml = "";
                     for (let spawn of feature.properties.spawns) {
+                        let spawn_filter = "";
+                        for (let dif of spawn.difficulties) {
+                            spawn_filter += " spawn-filter-" + dif;
+                        }
                         if (spawn.is_lineage) {
-                            divhtml += '<div class="spawn-lineage">'
+                            divhtml += '<div class="spawn-entry' + spawn_filter +'">'
                             for (let i = 0; i < spawn.lineage.length; i++) {
                                 divhtml += '<div class="lineage-entry"><img class="icon-image" src="./resources/icons/' + icon_by_name[spawn.lineage[i]] + '"/>' +
                                     '<div class="icon-label">' + (spawn.lineage_probs[i] * 100) + '%</div></div>';
                             }
                             divhtml += '</div>';
                         } else {
-                            divhtml += '<div class="spawn-simple"><img class="icon-image" src="./resources/icons/' + icon_by_name[spawn.creature] + '"/>' +
+                            divhtml += '<div class="spawn-entry' + spawn_filter +'"><img class="icon-image" src="./resources/icons/' + icon_by_name[spawn.creature] + '"/>' +
                                 '<div class="icon-label">x' + spawn.amount + '</div></div>';
                         }
                     }
