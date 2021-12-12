@@ -13,6 +13,7 @@ L.Bezier = L.Polyline.extend({
     }
 
 }); // and that's it, a bezier lib in 10 lines, suckers
+// now another 30 lines because no points-to-layer for poly/lines
 L.BezierGeoJSON = L.GeoJSON.extend({
     addData: function (geojson) {
         // considerable copypaste from the method im trying to extend/modify
@@ -30,16 +31,12 @@ L.BezierGeoJSON = L.GeoJSON.extend({
             }
             return this;
         }
-        var options = this.options;
-        var layer;
-        var geometry = geojson.type === 'Feature' ? geojson.geometry : geojson,
+        var options = this.options,
+            geometry = geojson.type === 'Feature' ? geojson.geometry : geojson,
             coords = geometry ? geometry.coordinates : null,
-            layers = [],
-            pointToLayer = options && options.pointToLayer,
             _coordsToLatLng = options && options.coordsToLatLng || L.GeoJSON.coordsToLatLng,
-            latlng, latlngs, i, len;
-        latlngs = L.GeoJSON.coordsToLatLngs(coords, geometry.type === 'LineString' ? 0 : 1, _coordsToLatLng);
-        layer = new L.Bezier(latlngs, options); // Here
+            latlngs = L.GeoJSON.coordsToLatLngs(coords, geometry.type === 'LineString' ? 0 : 1, _coordsToLatLng),
+            layer = new L.Bezier(latlngs, options); // Here
         layer.feature = L.GeoJSON.asFeature(geojson);
         layer.defaultOptions = layer.options;
         this.resetStyle(layer);

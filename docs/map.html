@@ -17,7 +17,7 @@
     <script src="./beziero.js"></script>
 
     <link rel="stylesheet" href="./rw.css" />
-    <style>
+    <style id="mapstyle">
         body, html {
             height: 100%;
             padding: 0;
@@ -52,16 +52,6 @@
             margin-right: 16px;
         }
 
-        .spawn-filter-0 {
-            
-        }
-        .spawn-filter-1 {
-            
-        }
-        .spawn-filter-2 {
-            display: initial;
-        }
-
         .lineage-entry {
             height: 24px;
         }
@@ -80,11 +70,111 @@
             -webkit-text-stroke-width: 1px;
             -webkit-text-stroke-color: black;
         }
+
+        /* Difficulty select and layers panel */
+        .right-panel {
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            background: #0c0c0c;
+            z-index: 1000;
+            color: #cccccc;
+            width: fit-content;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+        }
+
+        .collapsase-checkbox {
+            margin: 0;
+            appearance: none;
+            position: absolute;
+            display: block;
+            width: 2.4em;
+            height: 100%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+            .collapsase-checkbox:hover {
+                background: #8f8f8f;
+            }
+            .collapsase-checkbox::before {
+                margin: 0;
+                content: "\232a";
+                color: #A9A4B2; /* menu lightgray */
+                display: block;
+                position: relative;
+                text-align: center;
+                font-size: 1.6em;
+                font-weight: 600;
+                width: 100%;
+                transition: transform 0.3s, border 0.3s;
+            }
+            .collapsase-checkbox:hover::before {
+                transform: scaleX(1.2) scaleY(1.2);
+                color: white;
+            }
+            .collapsase-checkbox:checked::before {
+                transform: rotate(180deg);
+            }
+
+        .collapsable {
+            margin: 0;
+            padding: 12px;
+            margin-left: 36px;
+            width: 160px;
+            overflow: hidden;
+            transition: 0.4s;
+        }
+        .collapsase-checkbox:checked ~ .collapsable {
+            margin-right: -184px;
+            opacity: 0;
+        }
+
+    </style>
+
+    <style id="spawnfilters">
+        .spawn-filter-0 {
+        }
+
+        .spawn-filter-1 {
+        }
+
+        .spawn-filter-2 {
+        }
     </style>
 
 </head>
 <body>
     <div id="mapid"></div>
+
+    <div class="right-panel">
+        <input type="checkbox" name="display-right-panel" class="collapsase-checkbox" autocomplete="off" />
+        <br />
+        <div class="collapsable">
+            <div class="rw-text">Difficulty</div>
+            <div class="difficulty-select">
+                <label>
+                    <input type="radio" class="rw-radio" name="difficulties" onclick="show_difficulty(0);" value=0 autocomplete="off" checked="checked">
+                    <img src="./resources/icons/17_slugcat.png">
+                </label>
+                <label>
+                    <input type="radio" class="rw-radio" name="difficulties" onclick="show_difficulty(1);" value=1 autocomplete="off">
+                    <img src="./resources/icons/65_monk.png">
+                </label>
+                <label>
+                    <input type="radio" class="rw-radio" name="difficulties" onclick="show_difficulty(2);" value=2 autocomplete="off">
+                    <img src="./resources/icons/64_hunter.png">
+                </label>
+            </div>
+            <br />
+            <div class="rw-text">Layers</div>
+            <div class="layer-content">
+            </div>
+        </div>
+    </div>
+
     <script>
         'use strict';
 
@@ -124,6 +214,10 @@
             crs: L.CRS.Simple
         });
         map.setView([0, 0], -5);
+
+        var overlays = L.control.layers([], [], { collapsed: false });
+        overlays.addTo(map);
+        document.getElementsByClassName('layer-content')[0].appendChild(overlays.getContainer());
 
         // Tileset layer
         var tileLayer = L.tileLayer(folderpath + '{z}/{x}_{y}.png', {
@@ -172,8 +266,64 @@
                     layer.bindTooltip(feature.properties.name, { direction: "center", offset: [0, -14], interactive: true, className: "rw-text room-labels" });
                 }
             }).addTo(map);
+            overlays.addOverlay(roomsLayer, "Rooms");
             // remove room highlight on maxed zoom
             map.on('zoomend', function () { if (map.getZoom() >= 0 && lastRoomFocused) roomsLayer.resetStyle(lastRoomFocused); lastRoomFocused = null });
+
+            // Connections
+            connectionsLayer = new L.BezierGeoJSON(json["connection_features"], {
+                color: 'rgba(' + json["shortcutcolor"].join(',') + ',0.72)', // so the white looks better
+                weight: 2,
+                lineCap: "butt", // hehe
+                dashArray: "5 8",
+                interactive: false,
+            }).addTo(map);
+            overlays.addOverlay(connectionsLayer, "Connections");
+
+            // Geometry
+            geometryLayer = L.geoJSON(json["geo_features"], {
+                interactive: false,
+                color: 'rgb(' + json["geocolor"].join(',') + ')',
+                weight: 2,
+                lineCap: "butt", // im easily entertained
+                lineJoin: "miter",
+            }).addTo(map);
+            overlays.addOverlay(geometryLayer, "Geometry");
+
+            // Spawns
+            densLayer = L.geoJSON(json["spawn_features"], {
+                pointToLayer: function (feature, latlng) {
+                    // Spawns are organized by dens, dens list spawns in it, flexbox stacks them visually on the den location, filter classes control visib
+                    let divhtml = "";
+                    for (let spawn of feature.properties.spawns) {
+                        let spawn_filter = "";
+                        for (let dif of spawn.difficulties) {
+                            spawn_filter += " spawn-filter-" + dif;
+                        }
+                        if (spawn.is_lineage) {
+                            // lineages are vertical stacks
+                            divhtml += '<div class="spawn-entry' + spawn_filter + '">'
+                            for (let i = 0; i < spawn.lineage.length; i++) {
+                                divhtml += '<div class="lineage-entry"><img class="icon-image" src="./resources/icons/' + icon_by_name[spawn.lineage[i]] + '"/>' +
+                                    '<div class="icon-label">' + (spawn.lineage_probs[i] * 100) + '%</div></div>';
+                            }
+                            divhtml += '</div>';
+                        } else {
+                            divhtml += '<div class="spawn-entry' + spawn_filter + '"><img class="icon-image" src="./resources/icons/' + icon_by_name[spawn.creature] + '"/>' +
+                                '<div class="icon-label">x' + spawn.amount + '</div></div>';
+                        }
+                    }
+                    return L.marker(latlng, {
+                        icon: L.divIcon({
+                            className: 'spawn-divs',
+                            html: divhtml,
+                        }),
+                        interactive: false,
+                    });
+                },
+            }).addTo(map);
+            overlays.addOverlay(densLayer, "Spawns");
+
 
             // Zoom to room on rooms loaded
             if (room != null) {
@@ -185,55 +335,27 @@
                 }
             }
 
-            // Connections
-            connectionsLayer = new L.BezierGeoJSON(json["connection_features"], {
-                color: 'rgba(' + json["shortcutcolor"].join(',') + ',0.72)', // so the white looks better
-                weight: 2,
-                lineCap: "butt", // hehe
-                dashArray: "5 8",
-                interactive: false,
-            }).addTo(map);
-
-            // Geometry
-            geometryLayer = L.geoJSON(json["geo_features"], {
-                interactive: false,
-                color: 'rgb(' + json["geocolor"].join(',') + ')',
-                weight: 2,
-                lineCap: "butt", // hehe
-                lineJoin: "miter",
-            }).addTo(map);
-
-            // Spawns
-            densLayer = L.geoJSON(json["spawn_features"], {
-                pointToLayer: function (feature, latlng) {
-                    let divhtml = "";
-                    for (let spawn of feature.properties.spawns) {
-                        let spawn_filter = "";
-                        for (let dif of spawn.difficulties) {
-                            spawn_filter += " spawn-filter-" + dif;
-                        }
-                        if (spawn.is_lineage) {
-                            divhtml += '<div class="spawn-entry' + spawn_filter +'">'
-                            for (let i = 0; i < spawn.lineage.length; i++) {
-                                divhtml += '<div class="lineage-entry"><img class="icon-image" src="./resources/icons/' + icon_by_name[spawn.lineage[i]] + '"/>' +
-                                    '<div class="icon-label">' + (spawn.lineage_probs[i] * 100) + '%</div></div>';
-                            }
-                            divhtml += '</div>';
-                        } else {
-                            divhtml += '<div class="spawn-entry' + spawn_filter +'"><img class="icon-image" src="./resources/icons/' + icon_by_name[spawn.creature] + '"/>' +
-                                '<div class="icon-label">x' + spawn.amount + '</div></div>';
-                        }
-                    }
-                    return L.marker(latlng, {
-                        icon: L.divIcon({
-                            className: 'spawn-divs',
-                            html: divhtml,
-                        })
-                    });
-                }
-            }).addTo(map);
+            show_difficulty(0);
 
         }, true);
+
+
+        var show_difficulty = function (n) {
+            // Elements have a combination of these filters
+            // as long as one matches, it should be displayed
+            // parent class hides it, and if one of the sub classes unhides it we're good
+            var sheet = document.getElementById('spawnfilters').sheet;
+            for (var rule of sheet.cssRules) {
+                if (rule.selectorText.startsWith(".spawn-filter-")) {
+                    if (rule.selectorText.endsWith(n)) { // Show
+                        rule.style.display = "initial";
+                    }
+                    else {
+                        rule.style.removeProperty("display"); // unset
+                    }
+                }
+            }
+        };
 
         // misc iconography but mostly Spawns
         var icon_by_name = {
@@ -313,15 +435,10 @@
             "Leviathan": "59_leviathan.png",
             "randomitems": "60_randomitems_inactive.png",
             "NONE": "63_none.png",
-
-
-
             //## Difficulties
             "survivor": "17_slugcat.png",
             "hunter": "64_hunter.png",
             "monk": "65_monk.png",
-
-
             //## Missing stuff
             "Garbage Worm": "00_clear.png",
         }
