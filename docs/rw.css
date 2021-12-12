@@ -6,27 +6,27 @@
 
 .rw-title {
     font-family: "Rodondo";
-    font-size: 6em;
+    font-size: 6rem;
     text-align: center;
     line-height: 75%;
 }
 
 .rw-bigtext {
     font-family: 'Segoe UI';
-    font-size: 1.3125em;
+    font-size: 1.3125rem;
     font-weight: 600;
 }
 
 .rw-text {
     font-family: 'Segoe UI';
-    font-size: 1em;
+    font-size: 1rem;
     font-weight: 600;
 }
 
 /* RW BUTTON START */
 @keyframes border-blinker {
     50% {
-        border: 0.16em solid rgba(255,255,255,255);
+        border-color: rgba(255,255,255,255);
     }
 }
 
@@ -140,77 +140,95 @@
     }
 /* RW CHECKBOX END */
 
-/* RW RADIO START */
-.rw-radio {
+/* RW TOGGLE START */
+.rw-toggle {
     appearance: none;
-    border-radius: 0.8em;
-    border: 0.16em solid #A9A4B200;
-    background-color: black;
-    color: #A9A4B2; /* menu lightgray */
-    width: 2.4em;
-    height: 2.4em;
+    cursor: pointer;
     position: relative;
-    margin: 0.2em;
+    border-radius: 8px;
+    border: 2px solid #A9A4B200; /* alpha 0 for fading */
+    box-sizing: border-box; /* correctness */
+    width: 100%;
+    height: 100%;
+    margin: 0px;
 }
 
-    .rw-radio:hover {
-        animation: border-blinker 0.5s linear infinite, flasher 0.3s;
-        color: white;
+    .rw-toggle:checked {
+        border-color: #A9A4B2; /* lightgray */
     }
 
-    .rw-radio::before { /* outline that expands */
+    .rw-toggle:hover {
+        animation: border-blinker 0.5s linear infinite, flasher 0.3s;
+    }
+
+    .rw-toggle::before { /* outline that expands */
         content: "";
         position: absolute;
-        top: -0.08em; /* magic numbers, please fix me im so likely to break */
-        left: -0.08em;
+        left: 0;
+        top: 0; 
         width: 100%;
         height: 100%;
-        border-radius: inherit;
-        border: 0.14em solid #A9A4B2; /* menu lightgray */
-        transition: transform 0.3s, border 0.3s;
+        margin: -2px; /* undo parent border */
+        border-radius: 8px;
+        border: 2px solid #4B4653; /* darkgray */
+        transition: padding 0.3s, border 0.3s, margin 0.3s;
     }
 
-    .rw-radio:hover::before {
-        border: 0.136em solid white;
-        transform: scaleX(1.2) scaleY(1.2);
+    .rw-toggle:checked::before {
+        border-color: #A9A4B2; /* lightgray */
+        padding: 4px;
+        margin: -6px;
     }
 
-    .rw-radio:active::before {
-        border: 0.136em solid white;
-        transform: scaleX(1) scaleY(1);
+    .rw-toggle:hover::before {
+        border-color: white;
+        padding: 4px;
+        margin: -6px;
     }
 
-    .rw-radio:checked {
-        border: 0.136em solid white;
-        animation: none;
+    .rw-toggle:active::before {
+        border-color: white;
+        padding: unset;
+        margin: -2px;
     }
-        .rw-radio:checked::before {
-            border: 0.136em solid white;
-            transform: scaleX(1.2) scaleY(1.2);
-        }
 
-    /* inserted 50x50 image */
-    .rw-radio + img {
-        position: relative;
+    .rw-toggle + span {
         cursor: pointer;
-        opacity: 0.72;
-        bottom: -5px;
-        margin-left: -47.8px;
-        margin-right: -3px;
+        position: absolute;
+        left: 0px;
+        top: calc(50% - 12px); /* proof that CSS is stupid, cant fucking vertical center text */
+        width: 100%;
+        text-align: center;
+        color: #4B4653; /* darkgray */
         user-select: none;
     }
 
-    .rw-radio:hover + * {
+    .rw-toggle:hover + span {
+        color: #A9A4B2; /* lightgray */
+    }
+
+    .rw-toggle:active + span, .rw-toggle:checked + span {
+        color: white;
+    }
+
+    /* inserted 50x50 image */
+    .rw-toggle + img {
+        position: absolute;
+        cursor: pointer;
+        opacity: 0.72;
+        top: calc(50% - 25px);
+        left: calc(50% - 25px);
+        user-select: none;
+    }
+    .rw-toggle:checked + img {
+        opacity: 1.0;
+    }
+    .rw-toggle:hover + img {
         opacity: 1.0;
         transform: scaleX(1.2) scaleY(1.2);
     }
-
-    .rw-radio:active + * {
+    .rw-toggle:active + img {
         opacity: 1.0;
         transform: scaleX(1) scaleY(1);
     }
-
-    .rw-radio:checked + * {
-        opacity: 1.0;
-    }
-/* RW RADIO END */
+/* RW TOGGLE END */

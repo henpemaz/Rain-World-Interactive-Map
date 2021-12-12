@@ -132,6 +132,25 @@
             opacity: 0;
         }
 
+        .difficulty-select {
+            padding-bottom: 6px;
+        }
+
+        .difficulty-btn {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            margin: 6px;
+            position: relative;
+        }
+
+        .overlay-label {
+            position: relative;
+            width: 150px;
+            height: 36px;
+            margin: 11px;
+        }
+
     </style>
 
     <style id="spawnfilters">
@@ -149,28 +168,28 @@
 <body>
     <div id="mapid"></div>
 
-    <div class="right-panel">
+    <div class="right-panel rw-text">
         <input type="checkbox" name="display-right-panel" class="collapsase-checkbox" autocomplete="off" />
         <br />
         <div class="collapsable">
-            <div class="rw-text">Difficulty</div>
+            <div>Difficulty</div>
             <div class="difficulty-select">
-                <label>
-                    <input type="radio" class="rw-radio" name="difficulties" onclick="show_difficulty(0);" value=0 autocomplete="off" checked="checked">
+                <label class="difficulty-btn">
+                    <input type="radio" class="rw-toggle" name="difficulties" onclick="show_difficulty(0);" value=0 autocomplete="off" checked="checked">
                     <img src="./resources/icons/17_slugcat.png">
                 </label>
-                <label>
-                    <input type="radio" class="rw-radio" name="difficulties" onclick="show_difficulty(1);" value=1 autocomplete="off">
+                <label class="difficulty-btn">
+                    <input type="radio" class="rw-toggle" name="difficulties" onclick="show_difficulty(1);" value=1 autocomplete="off">
                     <img src="./resources/icons/65_monk.png">
                 </label>
-                <label>
-                    <input type="radio" class="rw-radio" name="difficulties" onclick="show_difficulty(2);" value=2 autocomplete="off">
+                <label class="difficulty-btn">
+                    <input type="radio" class="rw-toggle" name="difficulties" onclick="show_difficulty(2);" value=2 autocomplete="off">
                     <img src="./resources/icons/64_hunter.png">
                 </label>
             </div>
-            <br />
+
             <div class="rw-text">Layers</div>
-            <div class="layer-content">
+            <div id="layer-content">
             </div>
         </div>
     </div>
@@ -179,13 +198,22 @@
         'use strict';
 
         // Utils
+
+        // acquire json
+        var requestLock = {};
         function getJsonObject(url, cb, async = true) {
             // Todo abort requests on region switch
             // read text from URL location
             let request = new XMLHttpRequest();
+            requestLock = {};
+            request.requestLock = requestLock;
             request.open('GET', url, async);
             request.onreadystatechange = function () {
-                if (request.readyState === 4 && request.status === 200) {
+                if (request.requestLock != requestLock && request.status != 0) {
+                    request.abort();
+                    console.log("request for " + url + " aborted!");
+                }
+                else if (request.readyState === 4 && request.status === 200) {
                     try {
                         cb(JSON.parse(request.responseText));
                     } catch (err) {
@@ -196,6 +224,59 @@
             request.send();
         }
 
+        // Control with poor control options, whodvathot
+        // layer control with control over the classnames
+        L.Control.Layers.UnstupidLayer = L.Control.Layers.extend(
+            {
+                options: {
+                    collapsed: false,
+                    containerClass: "",
+                    sectionClass: "",
+                    overlaysListClass: "",
+                    overlayInputClass: "",
+                    overlayInputDivClass: "",
+                    overlayInputLabelClass: "",
+                    hideBaseLayers: true
+                },
+                _addItem: function (obj) {
+                    let h = L.Control.Layers.prototype._addItem.call(this, obj);
+                    h.className = this.options.overlayInputDivClass;
+                    h.children[0].className = this.options.overlayInputLabelClass;
+                    h.children[0].children[0].className = this.options.overlayInputClass;
+                    return h;
+                },
+                _initLayout: function () {
+                    L.Control.Layers.prototype._initLayout.call(this);
+                    this._container.className = this.options.containerClass;
+                    this._section.className = this.options.sectionClass;
+                    if (this.options.hideBaseLayers) {
+                        this._baseLayersList.style.display = "none";
+                        this._layersLink.style.display = "none";
+                    }
+                    this._overlaysList.className = this.options.overlaysListClass;
+                },
+                expand: function () { }
+            }
+        );
+
+        // update difficulty filters
+        var show_difficulty = function (n) {
+            // Elements have a combination of these filters
+            // as long as one matches, it should be displayed
+            // parent class hides it, and if one of the sub classes unhides it we're good
+            var sheet = document.getElementById('spawnfilters').sheet;
+            for (var rule of sheet.cssRules) {
+                if (rule.selectorText.startsWith(".spawn-filter-")) {
+                    if (rule.selectorText.endsWith(n)) { // Show
+                        rule.style.display = "initial";
+                    }
+                    else {
+                        rule.style.removeProperty("display"); // unset
+                    }
+                }
+            }
+        };
+
         // Params
         let params = new URLSearchParams(document.location.search);
         var region = params.get("region");
@@ -204,7 +285,6 @@
         }
         var modded = params.get("modded") == 'on' || ['SU', 'HI', 'DS', 'CC', 'GW', 'SH', 'SL', 'SI', 'LF', 'UW', 'SS', 'SB'].indexOf(region) == -1;
         var room = params.get("room");
-
         var folderpath = 'tiles/' + (modded ? 'modded' : 'vanilla') + '/' + region + '/';
 
         // Map
@@ -215,9 +295,13 @@
         });
         map.setView([0, 0], -5);
 
-        var overlays = L.control.layers([], [], { collapsed: false });
+        // Overlay control
+        var overlays = new L.Control.Layers.UnstupidLayer(null, null, {
+            overlayInputClass: "rw-toggle",
+            overlayInputLabelClass: "overlay-label",
+        });
         overlays.addTo(map);
-        document.getElementsByClassName('layer-content')[0].appendChild(overlays.getContainer());
+        document.getElementById('layer-content').appendChild(overlays.getContainer());
 
         // Tileset layer
         var tileLayer = L.tileLayer(folderpath + '{z}/{x}_{y}.png', {
@@ -324,7 +408,6 @@
             }).addTo(map);
             overlays.addOverlay(densLayer, "Spawns");
 
-
             // Zoom to room on rooms loaded
             if (room != null) {
                 for (let l of roomsLayer.getLayers()) {
@@ -336,26 +419,7 @@
             }
 
             show_difficulty(0);
-
         }, true);
-
-
-        var show_difficulty = function (n) {
-            // Elements have a combination of these filters
-            // as long as one matches, it should be displayed
-            // parent class hides it, and if one of the sub classes unhides it we're good
-            var sheet = document.getElementById('spawnfilters').sheet;
-            for (var rule of sheet.cssRules) {
-                if (rule.selectorText.startsWith(".spawn-filter-")) {
-                    if (rule.selectorText.endsWith(n)) { // Show
-                        rule.style.display = "initial";
-                    }
-                    else {
-                        rule.style.removeProperty("display"); // unset
-                    }
-                }
-            }
-        };
 
         // misc iconography but mostly Spawns
         var icon_by_name = {
