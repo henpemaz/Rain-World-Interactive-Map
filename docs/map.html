@@ -47,7 +47,7 @@
         }
 
         .spawn-entry {
-            display:none; /* to be overwritten */
+            display: none; /* to be overwritten */
             margin-left: 16px;
             margin-right: 16px;
         }
@@ -61,6 +61,7 @@
             margin-left: -25px;
             margin-top: -25px;
         }
+
         .icon-label {
             position: absolute;
             font-weight: 900;
@@ -83,9 +84,10 @@
             display: flex;
             flex-direction: row;
             align-items: center;
+            overflow: hidden; /* hide on collapse */
         }
 
-        .collapsase-checkbox {
+        .collapse-checkbox {
             margin: 0;
             appearance: none;
             position: absolute;
@@ -96,10 +98,12 @@
             display: flex;
             align-items: center;
         }
-            .collapsase-checkbox:hover {
+
+            .collapse-checkbox:hover {
                 background: #8f8f8f;
             }
-            .collapsase-checkbox::before {
+
+            .collapse-checkbox::before {
                 margin: 0;
                 content: "\232a";
                 color: #A9A4B2; /* menu lightgray */
@@ -111,11 +115,13 @@
                 width: 100%;
                 transition: transform 0.3s, border 0.3s;
             }
-            .collapsase-checkbox:hover::before {
+
+            .collapse-checkbox:hover::before {
                 transform: scaleX(1.2) scaleY(1.2);
                 color: white;
             }
-            .collapsase-checkbox:checked::before {
+
+            .collapse-checkbox:checked::before {
                 transform: rotate(180deg);
             }
 
@@ -124,10 +130,10 @@
             padding: 12px;
             margin-left: 36px;
             width: 160px;
-            overflow: hidden;
             transition: 0.4s;
         }
-        .collapsase-checkbox:checked ~ .collapsable {
+
+        .collapse-checkbox:checked ~ .collapsable {
             margin-right: -184px;
             opacity: 0;
         }
@@ -138,9 +144,9 @@
 
         .difficulty-btn {
             display: inline-block;
-            width: 30px;
-            height: 30px;
-            margin: 6px;
+            width: 38px;
+            height: 38px;
+            margin: 4px;
             position: relative;
         }
 
@@ -148,9 +154,9 @@
             position: relative;
             width: 150px;
             height: 36px;
-            margin: 11px;
+            margin-top: 11px;
+            margin-bottom: 11px;
         }
-
     </style>
 
     <style id="spawnfilters">
@@ -164,31 +170,37 @@
         }
     </style>
 
+    <style id="hoverlabels">
+        .hover-label {
+
+        }
+    </style>
+
 </head>
 <body>
     <div id="mapid"></div>
 
     <div class="right-panel rw-text">
-        <input type="checkbox" name="display-right-panel" class="collapsase-checkbox" autocomplete="off" />
+        <input type="checkbox" name="display-right-panel" class="collapse-checkbox" autocomplete="off" />
         <br />
         <div class="collapsable">
             <div>Difficulty</div>
             <div class="difficulty-select">
                 <label class="difficulty-btn">
-                    <input type="radio" class="rw-toggle" name="difficulties" onclick="show_difficulty(0);" value=0 autocomplete="off" checked="checked">
+                    <input type="radio" class="rw-ui" name="difficulties" onclick="show_difficulty(0);" value=0 autocomplete="off" checked="checked">
                     <img src="./resources/icons/17_slugcat.png">
                 </label>
                 <label class="difficulty-btn">
-                    <input type="radio" class="rw-toggle" name="difficulties" onclick="show_difficulty(1);" value=1 autocomplete="off">
+                    <input type="radio" class="rw-ui" name="difficulties" onclick="show_difficulty(1);" value=1 autocomplete="off">
                     <img src="./resources/icons/65_monk.png">
                 </label>
                 <label class="difficulty-btn">
-                    <input type="radio" class="rw-toggle" name="difficulties" onclick="show_difficulty(2);" value=2 autocomplete="off">
+                    <input type="radio" class="rw-ui" name="difficulties" onclick="show_difficulty(2);" value=2 autocomplete="off">
                     <img src="./resources/icons/64_hunter.png">
                 </label>
             </div>
 
-            <div class="rw-text">Layers</div>
+            <div>Layers</div>
             <div id="layer-content">
             </div>
         </div>
@@ -297,7 +309,7 @@
 
         // Overlay control
         var overlays = new L.Control.Layers.UnstupidLayer(null, null, {
-            overlayInputClass: "rw-toggle",
+            overlayInputClass: "rw-ui",
             overlayInputLabelClass: "overlay-label",
         });
         overlays.addTo(map);
@@ -313,6 +325,7 @@
 
         // Region stuff
         var roomsLayer;
+        var roomNames;
         var lastRoomFocused;
         var connectionsLayer;
         var geometryLayer;
@@ -321,6 +334,7 @@
             // Background color
             map.getContainer().style.backgroundColor = 'rgb(' + json["bgcolor"].join(',') + ')'; // I hate this with passion
 
+            roomNames = L.layerGroup();
             // Room features and name popups
             roomsLayer = L.geoJSON(json["room_features"], {
                 style: {
@@ -347,12 +361,35 @@
                         },
                     });
 
-                    layer.bindTooltip(feature.properties.name, { direction: "center", offset: [0, -14], interactive: true, className: "rw-text room-labels" });
+                    L.tooltip({ direction: "center", offset: [0, -14], permanent: true, className: "rw-text room-labels" }, layer).setContent(feature.properties.name).setLatLng(L.latLng([].concat(feature.properties.popupcoords).reverse())).addTo(roomNames);
+
+                    layer.bindTooltip(feature.properties.name, { direction: "center", offset: [0, -14], interactive: true, className: "rw-text room-labels hover-label" });
                 }
             }).addTo(map);
             overlays.addOverlay(roomsLayer, "Rooms");
+            overlays.addOverlay(roomNames, "Room Names");
             // remove room highlight on maxed zoom
             map.on('zoomend', function () { if (map.getZoom() >= 0 && lastRoomFocused) roomsLayer.resetStyle(lastRoomFocused); lastRoomFocused = null });
+            // make popups permanent on Room Names view
+            L.Tooltip.include({
+                setOpacity: function (o) { }
+            });
+            map.on('overlayadd', function (e) {
+                if (e.name == "Room Names") {
+                    roomNames.eachLayer(function (layer) {
+                        layer.options.permanent = true;
+                    });
+                    document.getElementById('hoverlabels').sheet.cssRules[0].style.display = 'none';
+                }
+            });
+            map.on('overlayremove', function (e) {
+                if (e.name == "Room Names") {
+                    roomNames.eachLayer(function (layer) {
+                        layer.options.permanent = false;
+                    });
+                    document.getElementById('hoverlabels').sheet.cssRules[0].style.removeProperty("display");
+                }
+            });
 
             // Connections
             connectionsLayer = new L.BezierGeoJSON(json["connection_features"], {

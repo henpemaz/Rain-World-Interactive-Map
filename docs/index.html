@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html>
 <head>
-
     <meta charset="ISO-8859-1">
     <title>Rain World Interactive Map</title>
 
@@ -13,6 +12,7 @@
     <meta property="og:description" content="A Rain World interactive map using leaflet and GeoJSON data exported from the game files. - henpemaz/Rain-World-Interactive-Map" />
 
     <link rel="stylesheet" href="./rw.css" />
+
     <style>
         /* big flex block of darkness */
         body, html {
@@ -61,12 +61,24 @@
             flex-direction: row;
             flex-wrap: wrap;
         }
-            /* re-center after wrap */
+
             #regionlist-group > div {
+                width: 200px;
+                position: relative;
+                /* re-center after wrap */
                 margin-left: auto;
                 margin-right: auto;
+                padding: 4px;
+                transition: width 0.4s;
             }
 
+        button.region-button {
+            position: relative;
+            width: 200px;
+            height: 40px;
+            background: black;
+            margin: 4px;
+        }
         /* fancy ass animations for stuff poping in */
         #regionlist-modded {
             display: block;
@@ -75,14 +87,15 @@
 
             #regionlist-modded.rl-hidden {
                 opacity: 0;
+                width: 0;
             }
 
-            #regionlist-modded > .rw-button {
+            #regionlist-modded > .rw-ui {
                 transition: width 0.4s, margin 0.4s, padding 0.4s;
                 white-space: nowrap;
             }
 
-            #regionlist-modded.rl-hidden > .rw-button {
+            #regionlist-modded.rl-hidden > .rw-ui {
                 transition: width 0.4s, margin 0.4s, padding 0.4s;
                 width: 0px;
                 margin-left: 0;
@@ -96,6 +109,61 @@
             margin-right: auto;
             width: fit-content;
         }
+
+        #modded-ckb {
+            position: relative;
+            width: 36px;
+            height: 36px;
+        }
+
+            #modded-ckb::before {
+                content: "\2714";
+                text-align: center;
+                font-size: 1.6em;
+                font-weight: 600;
+                color: #A9A4B200;
+                transition: padding 0.3s, border-color 0.3s, margin 0.3s, color 0.3s;
+            }
+
+            #modded-ckb:hover::before {
+                color: #A9A4B288;
+            }
+
+            #modded-ckb:checked::before {
+                color: #A9A4B2;
+            }
+
+            #modded-ckb:checked:hover::before {
+                color: white;
+            }
+
+            #modded-ckb:active::before {
+                color: white;
+            }
+
+            #modded-ckb + label {
+                position: relative;
+                left: 10px;
+                top: -10px;
+                color: #4B4653; /* darkgray */
+                transition: color 0.3s;
+            }
+
+            #modded-ckb:hover + label {
+                color: #A9A4B2;
+            }
+
+            #modded-ckb:checked + label {
+                color: #A9A4B2;
+            }
+
+            #modded-ckb:checked:hover + label {
+                color: white;
+            }
+
+            #modded-ckb:active + label {
+                color: white;
+            }
     </style>
 
 </head>
@@ -105,33 +173,33 @@
         <div class="rw-bigtext" style="text-align: center; margin-top:0.5em;">I'm lost in...</div>
         <div id="regionlist-group">
             <div id="regionlist-vanilla">
-                <button class="rw-button rw-text" name="region" value="SU">OUTSKIRTS</button><br />
-                <button class="rw-button rw-text" name="region" value="HI">INDUSTRIAL COMPLEX</button><br />
-                <button class="rw-button rw-text" name="region" value="DS">DRAINAGE SYSTEM</button><br />
-                <button class="rw-button rw-text" name="region" value="CC">CHIMNEY CANOPY</button><br />
-                <button class="rw-button rw-text" name="region" value="GW">GARBAGE WASTES</button><br />
-                <button class="rw-button rw-text" name="region" value="SH">SHADED CITADEL</button><br />
-                <button class="rw-button rw-text" name="region" value="SL">SHORELINE</button><br />
-                <button class="rw-button rw-text" name="region" value="SI">SKY ISLANDS</button><br />
-                <button class="rw-button rw-text" name="region" value="LF">FARM ARRAYS</button><br />
-                <button class="rw-button rw-text" name="region" value="UW">THE EXTERIOR</button><br />
-                <button class="rw-button rw-text" name="region" value="SS">FIVE PEBBLES</button><br />
-                <button class="rw-button rw-text" name="region" value="SB">SUBTERRANEAN</button><br />
+                <button class="region-button rw-ui rw-text" name="region" value="SU">OUTSKIRTS</button><br />
+                <button class="region-button rw-ui rw-text" name="region" value="HI">INDUSTRIAL COMPLEX</button><br />
+                <button class="region-button rw-ui rw-text" name="region" value="DS">DRAINAGE SYSTEM</button><br />
+                <button class="region-button rw-ui rw-text" name="region" value="CC">CHIMNEY CANOPY</button><br />
+                <button class="region-button rw-ui rw-text" name="region" value="GW">GARBAGE WASTES</button><br />
+                <button class="region-button rw-ui rw-text" name="region" value="SH">SHADED CITADEL</button><br />
+                <button class="region-button rw-ui rw-text" name="region" value="SL">SHORELINE</button><br />
+                <button class="region-button rw-ui rw-text" name="region" value="SI">SKY ISLANDS</button><br />
+                <button class="region-button rw-ui rw-text" name="region" value="LF">FARM ARRAYS</button><br />
+                <button class="region-button rw-ui rw-text" name="region" value="UW">THE EXTERIOR</button><br />
+                <button class="region-button rw-ui rw-text" name="region" value="SS">FIVE PEBBLES</button><br />
+                <button class="region-button rw-ui rw-text" name="region" value="SB">SUBTERRANEAN</button><br />
             </div>
             <div id="regionlist-modded" class="rl-hidden">
-                <button class="rw-button rw-text" name="region" value="AB">ARID BARRENS</button><br />
-                <button class="rw-button rw-text" name="region" value="AR">AETHER RIDGE</button><br />
-                <button class="rw-button rw-text" name="region" value="BL">BADLANDS</button><br />
-                <button class="rw-button rw-text" name="region" value="CG">CONCEALED GARDEN</button><br />
-                <button class="rw-button rw-text" name="region" value="DW">DESERTED WASTELANDS</button><br />
-                <button class="rw-button rw-text" name="region" value="LP">FORGOTTEN BOILER</button><br />
-                <button class="rw-button rw-text" name="region" value="LW">LUSH MIRE</button><br />
-                <button class="rw-button rw-text" name="region" value="TM">THE MAST</button><br />
-                <button class="rw-button rw-text" name="region" value="UB">UNDERBELLY</button><br />
-                <button class="rw-button rw-text" name="region" value="US">UNDERSEA</button><br />
+                <button class="region-button rw-ui rw-text" name="region" value="AB">ARID BARRENS</button><br />
+                <button class="region-button rw-ui rw-text" name="region" value="AR">AETHER RIDGE</button><br />
+                <button class="region-button rw-ui rw-text" name="region" value="BL">BADLANDS</button><br />
+                <button class="region-button rw-ui rw-text" name="region" value="CG">CONCEALED GARDEN</button><br />
+                <button class="region-button rw-ui rw-text" name="region" value="DW">DESERTED WASTELANDS</button><br />
+                <button class="region-button rw-ui rw-text" name="region" value="LP">FORGOTTEN BOILER</button><br />
+                <button class="region-button rw-ui rw-text" name="region" value="LW">LUSH MIRE</button><br />
+                <button class="region-button rw-ui rw-text" name="region" value="TM">THE MAST</button><br />
+                <button class="region-button rw-ui rw-text" name="region" value="UB">UNDERBELLY</button><br />
+                <button class="region-button rw-ui rw-text" name="region" value="US">UNDERSEA</button><br />
             </div>
         </div>
-        <div id="modded-ckb-group"><input type="checkbox" id="modded-ckb" name="modded" class="rw-checkbox" autocomplete="off"/><label for="modded-ckb" class="rw-text">Modded</label></div>
+        <div id="modded-ckb-group"><input type="checkbox" id="modded-ckb" name="modded" class="rw-ui" autocomplete="off" /><label for="modded-ckb" class="rw-text">Modded</label></div>
         <script>
             var updateVisibility = function () {
                 let ckb = document.getElementById('modded-ckb');
