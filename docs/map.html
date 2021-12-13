@@ -172,7 +172,7 @@
 
     <style id="hoverlabels">
         .hover-label {
-
+            display: none;
         }
     </style>
 
@@ -367,26 +367,21 @@
                 }
             }).addTo(map);
             overlays.addOverlay(roomsLayer, "Rooms");
+            roomNames.addTo(map);
             overlays.addOverlay(roomNames, "Room Names");
             // remove room highlight on maxed zoom
             map.on('zoomend', function () { if (map.getZoom() >= 0 && lastRoomFocused) roomsLayer.resetStyle(lastRoomFocused); lastRoomFocused = null });
-            // make popups permanent on Room Names view
+            // on Room Names view, prevent hover popups from displaying
             L.Tooltip.include({
-                setOpacity: function (o) { }
+                setOpacity: function (o) { } // fuck you
             });
             map.on('overlayadd', function (e) {
                 if (e.name == "Room Names") {
-                    roomNames.eachLayer(function (layer) {
-                        layer.options.permanent = true;
-                    });
                     document.getElementById('hoverlabels').sheet.cssRules[0].style.display = 'none';
                 }
             });
             map.on('overlayremove', function (e) {
                 if (e.name == "Room Names") {
-                    roomNames.eachLayer(function (layer) {
-                        layer.options.permanent = false;
-                    });
                     document.getElementById('hoverlabels').sheet.cssRules[0].style.removeProperty("display");
                 }
             });
