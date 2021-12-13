@@ -209,5 +209,56 @@ input[type='checkbox'].rw-ui, input[type='radio'].rw-ui {
         transform: none;
     }
 
-/* RW UI END */
+    /* TOGGLES END */
 
+    /* CHECKBOX MIXIN */
+
+    input[type='checkbox'].rw-ui-ckb::before {
+        content: "\2714";
+        text-align: center;
+        font-size: 1.6em;
+        font-weight: 600;
+        color: #A9A4B200;
+        transition: padding 0.3s, border-color 0.3s, margin 0.3s, color 0.3s;
+    }
+
+    input[type='checkbox'].rw-ui-ckb:hover::before {
+        color: #A9A4B288;
+    }
+
+    input[type='checkbox'].rw-ui-ckb:checked::before {
+        color: #A9A4B2;
+    }
+
+    input[type='checkbox'].rw-ui-ckb:checked:hover::before {
+        color: white;
+    }
+
+    input[type='checkbox'].rw-ui-ckb:active::before {
+        color: white;
+    }
+
+    input[type='checkbox'].rw-ui-ckb + label {
+        position: relative;
+        left: 10px;
+        top: -10px;
+        color: #4B4653; /* darkgray */
+        transition: color 0.3s;
+    }
+
+    input[type='checkbox'].rw-ui-ckb:hover + label {
+        color: #A9A4B2;
+    }
+
+    input[type='checkbox'].rw-ui-ckb:checked + label {
+        color: #A9A4B2;
+    }
+
+    input[type='checkbox'].rw-ui-ckb:checked:hover + label {
+        color: white;
+    }
+
+    input[type='checkbox'].rw-ui-ckb:active + label {
+        color: white;
+    }
+/* RW UI END */

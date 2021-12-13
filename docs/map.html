@@ -180,6 +180,11 @@
 <body>
     <div id="mapid"></div>
 
+    <div class="left-panel rw-text">
+
+
+    </div>
+
     <div class="right-panel rw-text">
         <input type="checkbox" name="display-right-panel" class="collapse-checkbox" autocomplete="off" />
         <br />
@@ -187,15 +192,15 @@
             <div>Difficulty</div>
             <div class="difficulty-select">
                 <label class="difficulty-btn">
-                    <input type="radio" class="rw-ui" name="difficulties" onclick="show_difficulty(0);" value=0 autocomplete="off" checked="checked">
+                    <input type="radio" class="rw-ui" name="difficulties" onclick="selectDifficulty(0);" value=0 autocomplete="off" checked="checked">
                     <img src="./resources/icons/17_slugcat.png">
                 </label>
                 <label class="difficulty-btn">
-                    <input type="radio" class="rw-ui" name="difficulties" onclick="show_difficulty(1);" value=1 autocomplete="off">
+                    <input type="radio" class="rw-ui" name="difficulties" onclick="selectDifficulty(1);" value=1 autocomplete="off">
                     <img src="./resources/icons/65_monk.png">
                 </label>
                 <label class="difficulty-btn">
-                    <input type="radio" class="rw-ui" name="difficulties" onclick="show_difficulty(2);" value=2 autocomplete="off">
+                    <input type="radio" class="rw-ui" name="difficulties" onclick="selectDifficulty(2);" value=2 autocomplete="off">
                     <img src="./resources/icons/64_hunter.png">
                 </label>
             </div>
@@ -272,7 +277,7 @@
         );
 
         // update difficulty filters
-        var show_difficulty = function (n) {
+        function selectDifficulty (n) {
             // Elements have a combination of these filters
             // as long as one matches, it should be displayed
             // parent class hides it, and if one of the sub classes unhides it we're good
@@ -287,7 +292,80 @@
                     }
                 }
             }
-        };
+        }
+
+        var dynamicNavigation; // Stupid browsers
+        if ('URLSearchParams' in window && 'pushState' in window.history) {
+            dynamicNavigation = true;
+        }
+
+        var hilightedRoom;
+        function hilightRoom(e) {
+            if (e.target) e = e.target;
+            resetHilight();
+            hilightedRoom = e;
+            if (map.getZoom() < 0 && hilightedRoom != focusedRoom) {
+                e.setStyle({
+                    fillOpacity: 0.2
+                });
+            }
+        }
+
+        function updateHilight() {
+            if (hilightedRoom == null) return;
+            if (map.getZoom() < 0 && hilightedRoom != focusedRoom) {
+                hilightedRoom.setStyle({
+                    fillOpacity: 0.2
+                });
+            } else {
+                hilightedRoom.setStyle({
+                    fillOpacity: 0
+                });
+            }
+        }
+
+        function resetHilight() {
+            if (hilightedRoom == null) return;
+            hilightedRoom.setStyle({
+                fillOpacity: 0
+            });
+            hilightedRoom = null;
+        }
+
+        var focusedRoom;
+        function focusRoom(e) {
+            if (e.target) e = e.target;
+            if (e != focusedRoom) resetFocus();
+            focusedRoom = e;
+            console.log(focusedRoom.feature.properties.name + " focused")
+            map.fitBounds(e.getBounds());
+            updateHilight(); // might not move
+            focusedRoom.setStyle(
+                {
+                    weight: 6
+                });
+            if (dynamicNavigation) {
+                params.set("room", e.feature.properties.name);
+                window.history.pushState(null, '', window.location.pathname + '?' + params.toString());
+            }
+        }
+
+        function updateFocus() {
+            if (focusedRoom == null) return;
+            if (!map.getBounds().overlaps(focusedRoom.getBounds())) {
+                resetFocus();
+            }
+        }
+
+        function resetFocus() {
+            if (focusedRoom == null) return;
+            console.log(focusedRoom.feature.properties.name + " no longer focused")
+            focusedRoom.setStyle(
+                {
+                    weight: 0
+                });
+            focusedRoom = null;
+        }
 
         // Params
         let params = new URLSearchParams(document.location.search);
@@ -306,6 +384,26 @@
             crs: L.CRS.Simple
         });
         map.setView([0, 0], -5);
+
+        // Events
+        map.on('click', function (e) { if (e.originalEvent.target == map._container) resetFocus(); });
+        // remove room highlight on maxed zoom
+        map.on('zoomend', updateHilight);
+        map.on('moveend', updateFocus);
+        L.Tooltip.include({
+            setOpacity: function (o) { } // fuck you, don't style my elements unless I tell you to.
+        });
+        // on Room Names view, prevent hover popups from displaying
+        map.on('overlayadd', function (e) {
+            if (e.name == "Room Names") {
+                document.getElementById('hoverlabels').sheet.cssRules[0].style.display = 'none';
+            }
+        });
+        map.on('overlayremove', function (e) {
+            if (e.name == "Room Names") {
+                document.getElementById('hoverlabels').sheet.cssRules[0].style.removeProperty("display");
+            }
+        });
 
         // Overlay control
         var overlays = new L.Control.Layers.UnstupidLayer(null, null, {
@@ -345,16 +443,9 @@
                 onEachFeature: function (feature, layer) {
                     // Room focus stuff
                     layer.on({
-                        mouseover: function (e) {
-                            if (map.getZoom() < 0) {
-                                e.target.setStyle({
-                                    fillOpacity: 0.2
-                                });
-                                lastRoomFocused = e.target;
-                            }
-                        },
-                        mouseout: function (e) { roomsLayer.resetStyle(e.target); if (lastRoomFocused == e.target) lastRoomFocused = null; },
-                        click: function (e) { roomsLayer.resetStyle(e.target); map.fitBounds(e.target.getBounds()); },
+                        mouseover: hilightRoom,
+                        mouseout: resetHilight,
+                        click: focusRoom,
                         tooltipopen: function (e) {
                             e.tooltip.setLatLng(L.latLng([].concat(e.target.feature.properties.popupcoords).reverse()));
                             e.tooltip.getElement().style.removeProperty('opacity'); // 'defaults' amirite
@@ -369,22 +460,6 @@
             overlays.addOverlay(roomsLayer, "Rooms");
             roomNames.addTo(map);
             overlays.addOverlay(roomNames, "Room Names");
-            // remove room highlight on maxed zoom
-            map.on('zoomend', function () { if (map.getZoom() >= 0 && lastRoomFocused) roomsLayer.resetStyle(lastRoomFocused); lastRoomFocused = null });
-            // on Room Names view, prevent hover popups from displaying
-            L.Tooltip.include({
-                setOpacity: function (o) { } // fuck you
-            });
-            map.on('overlayadd', function (e) {
-                if (e.name == "Room Names") {
-                    document.getElementById('hoverlabels').sheet.cssRules[0].style.display = 'none';
-                }
-            });
-            map.on('overlayremove', function (e) {
-                if (e.name == "Room Names") {
-                    document.getElementById('hoverlabels').sheet.cssRules[0].style.removeProperty("display");
-                }
-            });
 
             // Connections
             connectionsLayer = new L.BezierGeoJSON(json["connection_features"], {
@@ -450,7 +525,7 @@
                 }
             }
 
-            show_difficulty(0);
+            selectDifficulty(0);
         }, true);
 
         // misc iconography but mostly Spawns
