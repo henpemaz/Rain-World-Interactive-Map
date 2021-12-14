@@ -72,70 +72,34 @@
             -webkit-text-stroke-color: black;
         }
 
-        /* Difficulty select and layers panel */
-        .right-panel {
+        .overlay-label {
+            position: relative;
+            width: 150px;
+            height: 36px;
+            margin-top: 11px;
+            margin-bottom: 11px;
+        }
+
+        /* UI stuff */
+        .side-panel {
             position: absolute;
-            top: 24px;
-            right: 24px;
+            padding: 8px;
             background: #0c0c0c;
             z-index: 1000;
             color: #cccccc;
             width: fit-content;
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-            overflow: hidden; /* hide on collapse */
         }
 
-        .collapse-checkbox {
-            margin: 0;
-            appearance: none;
-            position: absolute;
-            display: block;
-            width: 2.4em;
-            height: 100%;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
+        /* Difficulty select and layers panel */
+        .right-panel {
+            top: 24px;
+            right: 24px;
         }
 
-            .collapse-checkbox:hover {
-                background: #8f8f8f;
-            }
-
-            .collapse-checkbox::before {
-                margin: 0;
-                content: "\232a";
-                color: #A9A4B2; /* menu lightgray */
-                display: block;
-                position: relative;
-                text-align: center;
-                font-size: 1.6em;
-                font-weight: 600;
-                width: 100%;
-                transition: transform 0.3s, border 0.3s;
-            }
-
-            .collapse-checkbox:hover::before {
-                transform: scaleX(1.2) scaleY(1.2);
-                color: white;
-            }
-
-            .collapse-checkbox:checked::before {
-                transform: rotate(180deg);
-            }
-
-        .collapsable {
-            margin: 0;
-            padding: 12px;
-            margin-left: 36px;
-            width: 160px;
-            transition: 0.4s;
-        }
-
-        .collapse-checkbox:checked ~ .collapsable {
-            margin-right: -184px;
-            opacity: 0;
+        .left-panel {
+            top: 24px;
+            left: 24px;
+            width: 300px;
         }
 
         .difficulty-select {
@@ -150,24 +114,45 @@
             position: relative;
         }
 
-        .overlay-label {
-            position: relative;
-            width: 150px;
-            height: 36px;
-            margin-top: 11px;
-            margin-bottom: 11px;
+        #modded-ckb-group {
+            position:relative;
+            top: 6px;
+            padding-left: 6px;
+            margin-left:auto;
         }
+
+        #modded-ckb {
+            position: relative;
+            width: 24px;
+            height: 24px;
+        }
+        #modded-ckb ~ label {
+            left: 4px;
+            top: -6px;
+        }
+
+            #modded-ckb::before {
+                font-size: 1rem;
+            }
+
+        .region-btn {
+            font-size: 0.8rem;
+            width: 160px;
+            height: 24px;
+            position: relative;
+            margin-top: 8px;
+            margin-bottom: 8px;
+        }
+        input[type='radio'].rw-ui + span {
+            top: calc(50% - 10px); /* proof that CSS is stupid, cant fucking vertical center text */
+        }
+
     </style>
 
     <style id="spawnfilters">
-        .spawn-filter-0 {
-        }
-
-        .spawn-filter-1 {
-        }
-
-        .spawn-filter-2 {
-        }
+        .spawn-filter-0 { }
+        .spawn-filter-1 { }
+        .spawn-filter-2 { }
     </style>
 
     <style id="hoverlabels">
@@ -180,35 +165,56 @@
 <body>
     <div id="mapid"></div>
 
-    <div class="left-panel rw-text">
+    <div class="side-panel left-panel rw-text">
+            <span>Regions</span>
+        <span id="modded-ckb-group">
+            <input type="checkbox" id="modded-ckb" name="modded" class="rw-ui rw-ui-ckb" autocomplete="off" />
+            <label for="modded-ckb" class="rw-text">Modded</label>
+        </span>
 
-
+        <div class="region-select">
+            <label><div class="region-btn"><input type="radio" class="rw-ui" name="regions" onclick="selectRegion();" value="SU" autocomplete="off"><span>OUTSKIRTS</span></div></label>
+            <label><div class="region-btn"><input type="radio" class="rw-ui" name="regions" onclick="selectRegion();" value="SU" autocomplete="off"><span>OUTSKIRTS</span></div></label>
+            <label><div class="region-btn"><input type="radio" class="rw-ui" name="regions" onclick="selectRegion();" value="SU" autocomplete="off"><span>OUTSKIRTS</span></div></label>
+            <label><div class="region-btn"><input type="radio" class="rw-ui" name="regions" onclick="selectRegion();" value="SU" autocomplete="off"><span>OUTSKIRTS</span></div></label>
+            <label><div class="region-btn"><input type="radio" class="rw-ui" name="regions" onclick="selectRegion();" value="SU" autocomplete="off"><span>OUTSKIRTS</span></div></label>
+            <label><div class="region-btn"><input type="radio" class="rw-ui" name="regions" onclick="selectRegion();" value="SU" autocomplete="off"><span>OUTSKIRTS</span></div></label>
+            <label><div class="region-btn"><input type="radio" class="rw-ui" name="regions" onclick="selectRegion();" value="SU" autocomplete="off"><span>OUTSKIRTS</span></div></label>
+            <label><div class="region-btn"><input type="radio" class="rw-ui" name="regions" onclick="selectRegion();" value="SU" autocomplete="off"><span>OUTSKIRTS</span></div></label>
+            <label><div class="region-btn"><input type="radio" class="rw-ui" name="regions" onclick="selectRegion();" value="SU" autocomplete="off"><span>OUTSKIRTS</span></div></label>
+            <label><div class="region-btn"><input type="radio" class="rw-ui" name="regions" onclick="selectRegion();" value="SU" autocomplete="off"><span>OUTSKIRTS</span></div></label>
+            <label><div class="region-btn"><input type="radio" class="rw-ui" name="regions" onclick="selectRegion();" value="SU" autocomplete="off"><span>OUTSKIRTS</span></div></label>
+            <label><div class="region-btn"><input type="radio" class="rw-ui" name="regions" onclick="selectRegion();" value="SU" autocomplete="off"><span>OUTSKIRTS</span></div></label>
+            <label><div class="region-btn"><input type="radio" class="rw-ui" name="regions" onclick="selectRegion();" value="SU" autocomplete="off"><span>OUTSKIRTS</span></div></label>
+            <label><div class="region-btn"><input type="radio" class="rw-ui" name="regions" onclick="selectRegion();" value="SU" autocomplete="off"><span>OUTSKIRTS</span></div></label>
+            <label><div class="region-btn"><input type="radio" class="rw-ui" name="regions" onclick="selectRegion();" value="SU" autocomplete="off"><span>OUTSKIRTS</span></div></label>
+            <label><div class="region-btn"><input type="radio" class="rw-ui" name="regions" onclick="selectRegion();" value="SU" autocomplete="off"><span>OUTSKIRTS</span></div></label>
+            <label><div class="region-btn"><input type="radio" class="rw-ui" name="regions" onclick="selectRegion();" value="SU" autocomplete="off"><span>OUTSKIRTS</span></div></label>
+            <label><div class="region-btn"><input type="radio" class="rw-ui" name="regions" onclick="selectRegion();" value="SU" autocomplete="off"><span>OUTSKIRTS</span></div></label>
+            <label><div class="region-btn"><input type="radio" class="rw-ui" name="regions" onclick="selectRegion();" value="SU" autocomplete="off"><span>OUTSKIRTS</span></div></label>
+            <label><div class="region-btn"><input type="radio" class="rw-ui" name="regions" onclick="selectRegion();" value="SU" autocomplete="off"><span>OUTSKIRTS</span></div></label>
+        </div>
     </div>
 
-    <div class="right-panel rw-text">
-        <input type="checkbox" name="display-right-panel" class="collapse-checkbox" autocomplete="off" />
-        <br />
-        <div class="collapsable">
-            <div>Difficulty</div>
-            <div class="difficulty-select">
-                <label class="difficulty-btn">
-                    <input type="radio" class="rw-ui" name="difficulties" onclick="selectDifficulty(0);" value=0 autocomplete="off" checked="checked">
-                    <img src="./resources/icons/17_slugcat.png">
-                </label>
-                <label class="difficulty-btn">
-                    <input type="radio" class="rw-ui" name="difficulties" onclick="selectDifficulty(1);" value=1 autocomplete="off">
-                    <img src="./resources/icons/65_monk.png">
-                </label>
-                <label class="difficulty-btn">
-                    <input type="radio" class="rw-ui" name="difficulties" onclick="selectDifficulty(2);" value=2 autocomplete="off">
-                    <img src="./resources/icons/64_hunter.png">
-                </label>
-            </div>
-
-            <div>Layers</div>
-            <div id="layer-content">
-            </div>
+    <div class="side-panel right-panel rw-text">
+        <div>Difficulty</div>
+        <div class="difficulty-select">
+            <label class="difficulty-btn">
+                <input type="radio" class="rw-ui" name="difficulties" onclick="selectDifficulty(0);" value=0 autocomplete="off" checked="checked">
+                <img src="./resources/icons/17_slugcat.png">
+            </label>
+            <label class="difficulty-btn">
+                <input type="radio" class="rw-ui" name="difficulties" onclick="selectDifficulty(1);" value=1 autocomplete="off">
+                <img src="./resources/icons/65_monk.png">
+            </label>
+            <label class="difficulty-btn">
+                <input type="radio" class="rw-ui" name="difficulties" onclick="selectDifficulty(2);" value=2 autocomplete="off">
+                <img src="./resources/icons/64_hunter.png">
+            </label>
         </div>
+
+        <div>Layers</div>
+        <div id="layer-content"></div>
     </div>
 
     <script>
@@ -381,8 +387,9 @@
         var map = L.map('mapid', {
             minZoom: -7,
             maxZoom: 3, // 8x
-            crs: L.CRS.Simple
+            crs: L.CRS.Simple,
         });
+        map.attributionControl.setPrefix('Powered by <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> &amp <a href="https://github.com/henpemaz" title="Gamedev &amp associated arts enthusiast">Henpemaz</a>')
         map.setView([0, 0], -5);
 
         // Events
