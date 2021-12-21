@@ -83,23 +83,20 @@
         /* UI stuff */
         .side-panel {
             position: absolute;
+            top: 24px;
+            max-height: calc(100vh - 54px);
+            display: flex;
+            flex-direction: column;
+
             padding: 8px;
             background: #0c0c0c;
             z-index: 1000;
             color: #cccccc;
-            width: fit-content;
         }
 
         /* Difficulty select and layers panel */
         .right-panel {
-            top: 24px;
             right: 24px;
-        }
-
-        .left-panel {
-            top: 24px;
-            left: 24px;
-            width: 300px;
         }
 
         .difficulty-select {
@@ -112,6 +109,14 @@
             height: 38px;
             margin: 4px;
             position: relative;
+        }
+
+        #layer-content {
+            padding: 8px;
+        }
+
+        .left-panel {
+            left: 24px;
         }
 
         #modded-ckb-group {
@@ -147,6 +152,18 @@
             top: calc(50% - 10px); /* proof that CSS is stupid, cant fucking vertical center text */
         }
 
+        #region-select {
+            padding-left: 8px;
+            padding-right: 8px;
+        }
+
+        .scroll-ish {
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding-right: 24px !important;
+            margin-right: -16px !important;
+        }
+
     </style>
 
     <style id="spawnfilters">
@@ -166,41 +183,22 @@
     <div id="mapid"></div>
 
     <div class="side-panel left-panel rw-text">
+        <div style="padding-left: 8px; padding-bottom: 8px;">
             <span>Regions</span>
-        <span id="modded-ckb-group">
-            <input type="checkbox" id="modded-ckb" name="modded" class="rw-ui rw-ui-ckb" autocomplete="off" />
-            <label for="modded-ckb" class="rw-text">Modded</label>
-        </span>
-
-        <div class="region-select">
-            <label><div class="region-btn"><input type="radio" class="rw-ui" name="regions" onclick="selectRegion();" value="SU" autocomplete="off"><span>OUTSKIRTS</span></div></label>
-            <label><div class="region-btn"><input type="radio" class="rw-ui" name="regions" onclick="selectRegion();" value="SU" autocomplete="off"><span>OUTSKIRTS</span></div></label>
-            <label><div class="region-btn"><input type="radio" class="rw-ui" name="regions" onclick="selectRegion();" value="SU" autocomplete="off"><span>OUTSKIRTS</span></div></label>
-            <label><div class="region-btn"><input type="radio" class="rw-ui" name="regions" onclick="selectRegion();" value="SU" autocomplete="off"><span>OUTSKIRTS</span></div></label>
-            <label><div class="region-btn"><input type="radio" class="rw-ui" name="regions" onclick="selectRegion();" value="SU" autocomplete="off"><span>OUTSKIRTS</span></div></label>
-            <label><div class="region-btn"><input type="radio" class="rw-ui" name="regions" onclick="selectRegion();" value="SU" autocomplete="off"><span>OUTSKIRTS</span></div></label>
-            <label><div class="region-btn"><input type="radio" class="rw-ui" name="regions" onclick="selectRegion();" value="SU" autocomplete="off"><span>OUTSKIRTS</span></div></label>
-            <label><div class="region-btn"><input type="radio" class="rw-ui" name="regions" onclick="selectRegion();" value="SU" autocomplete="off"><span>OUTSKIRTS</span></div></label>
-            <label><div class="region-btn"><input type="radio" class="rw-ui" name="regions" onclick="selectRegion();" value="SU" autocomplete="off"><span>OUTSKIRTS</span></div></label>
-            <label><div class="region-btn"><input type="radio" class="rw-ui" name="regions" onclick="selectRegion();" value="SU" autocomplete="off"><span>OUTSKIRTS</span></div></label>
-            <label><div class="region-btn"><input type="radio" class="rw-ui" name="regions" onclick="selectRegion();" value="SU" autocomplete="off"><span>OUTSKIRTS</span></div></label>
-            <label><div class="region-btn"><input type="radio" class="rw-ui" name="regions" onclick="selectRegion();" value="SU" autocomplete="off"><span>OUTSKIRTS</span></div></label>
-            <label><div class="region-btn"><input type="radio" class="rw-ui" name="regions" onclick="selectRegion();" value="SU" autocomplete="off"><span>OUTSKIRTS</span></div></label>
-            <label><div class="region-btn"><input type="radio" class="rw-ui" name="regions" onclick="selectRegion();" value="SU" autocomplete="off"><span>OUTSKIRTS</span></div></label>
-            <label><div class="region-btn"><input type="radio" class="rw-ui" name="regions" onclick="selectRegion();" value="SU" autocomplete="off"><span>OUTSKIRTS</span></div></label>
-            <label><div class="region-btn"><input type="radio" class="rw-ui" name="regions" onclick="selectRegion();" value="SU" autocomplete="off"><span>OUTSKIRTS</span></div></label>
-            <label><div class="region-btn"><input type="radio" class="rw-ui" name="regions" onclick="selectRegion();" value="SU" autocomplete="off"><span>OUTSKIRTS</span></div></label>
-            <label><div class="region-btn"><input type="radio" class="rw-ui" name="regions" onclick="selectRegion();" value="SU" autocomplete="off"><span>OUTSKIRTS</span></div></label>
-            <label><div class="region-btn"><input type="radio" class="rw-ui" name="regions" onclick="selectRegion();" value="SU" autocomplete="off"><span>OUTSKIRTS</span></div></label>
-            <label><div class="region-btn"><input type="radio" class="rw-ui" name="regions" onclick="selectRegion();" value="SU" autocomplete="off"><span>OUTSKIRTS</span></div></label>
+            <span id="modded-ckb-group">
+                <input type="checkbox" id="modded-ckb" name="modded" class="rw-ui rw-ui-ckb" autocomplete="off" onclick="updateRegionList(this.checked);" />
+                <label for="modded-ckb" class="rw-text">Modded</label>
+            </span>
         </div>
+
+        <form name="regionselect" id="region-select" class="scroll-ish"></form>
     </div>
 
     <div class="side-panel right-panel rw-text">
         <div>Difficulty</div>
-        <div class="difficulty-select">
+        <form name="difficulty" class="difficulty-select">
             <label class="difficulty-btn">
-                <input type="radio" class="rw-ui" name="difficulties" onclick="selectDifficulty(0);" value=0 autocomplete="off" checked="checked">
+                <input type="radio" class="rw-ui" name="difficulties" onclick="selectDifficulty(0);" value=0 autocomplete="off">
                 <img src="./resources/icons/17_slugcat.png">
             </label>
             <label class="difficulty-btn">
@@ -211,330 +209,14 @@
                 <input type="radio" class="rw-ui" name="difficulties" onclick="selectDifficulty(2);" value=2 autocomplete="off">
                 <img src="./resources/icons/64_hunter.png">
             </label>
-        </div>
+        </form>
 
         <div>Layers</div>
-        <div id="layer-content"></div>
+        <div id="layer-content" class="scroll-ish"></div>
     </div>
 
     <script>
         'use strict';
-
-        // Utils
-
-        // acquire json
-        var requestLock = {};
-        function getJsonObject(url, cb, async = true) {
-            // Todo abort requests on region switch
-            // read text from URL location
-            let request = new XMLHttpRequest();
-            requestLock = {};
-            request.requestLock = requestLock;
-            request.open('GET', url, async);
-            request.onreadystatechange = function () {
-                if (request.requestLock != requestLock && request.status != 0) {
-                    request.abort();
-                    console.log("request for " + url + " aborted!");
-                }
-                else if (request.readyState === 4 && request.status === 200) {
-                    try {
-                        cb(JSON.parse(request.responseText));
-                    } catch (err) {
-                        console.log(err);
-                    }
-                }
-            }
-            request.send();
-        }
-
-        // Control with poor control options, whodvathot
-        // layer control with control over the classnames
-        L.Control.Layers.UnstupidLayer = L.Control.Layers.extend(
-            {
-                options: {
-                    collapsed: false,
-                    containerClass: "",
-                    sectionClass: "",
-                    overlaysListClass: "",
-                    overlayInputClass: "",
-                    overlayInputDivClass: "",
-                    overlayInputLabelClass: "",
-                    hideBaseLayers: true
-                },
-                _addItem: function (obj) {
-                    let h = L.Control.Layers.prototype._addItem.call(this, obj);
-                    h.className = this.options.overlayInputDivClass;
-                    h.children[0].className = this.options.overlayInputLabelClass;
-                    h.children[0].children[0].className = this.options.overlayInputClass;
-                    return h;
-                },
-                _initLayout: function () {
-                    L.Control.Layers.prototype._initLayout.call(this);
-                    this._container.className = this.options.containerClass;
-                    this._section.className = this.options.sectionClass;
-                    if (this.options.hideBaseLayers) {
-                        this._baseLayersList.style.display = "none";
-                        this._layersLink.style.display = "none";
-                    }
-                    this._overlaysList.className = this.options.overlaysListClass;
-                },
-                expand: function () { }
-            }
-        );
-
-        // update difficulty filters
-        function selectDifficulty (n) {
-            // Elements have a combination of these filters
-            // as long as one matches, it should be displayed
-            // parent class hides it, and if one of the sub classes unhides it we're good
-            var sheet = document.getElementById('spawnfilters').sheet;
-            for (var rule of sheet.cssRules) {
-                if (rule.selectorText.startsWith(".spawn-filter-")) {
-                    if (rule.selectorText.endsWith(n)) { // Show
-                        rule.style.display = "initial";
-                    }
-                    else {
-                        rule.style.removeProperty("display"); // unset
-                    }
-                }
-            }
-        }
-
-        var dynamicNavigation; // Stupid browsers
-        if ('URLSearchParams' in window && 'pushState' in window.history) {
-            dynamicNavigation = true;
-        }
-
-        var hilightedRoom;
-        function hilightRoom(e) {
-            if (e.target) e = e.target;
-            resetHilight();
-            hilightedRoom = e;
-            if (map.getZoom() < 0 && hilightedRoom != focusedRoom) {
-                e.setStyle({
-                    fillOpacity: 0.2
-                });
-            }
-        }
-
-        function updateHilight() {
-            if (hilightedRoom == null) return;
-            if (map.getZoom() < 0 && hilightedRoom != focusedRoom) {
-                hilightedRoom.setStyle({
-                    fillOpacity: 0.2
-                });
-            } else {
-                hilightedRoom.setStyle({
-                    fillOpacity: 0
-                });
-            }
-        }
-
-        function resetHilight() {
-            if (hilightedRoom == null) return;
-            hilightedRoom.setStyle({
-                fillOpacity: 0
-            });
-            hilightedRoom = null;
-        }
-
-        var focusedRoom;
-        function focusRoom(e) {
-            if (e.target) e = e.target;
-            if (e != focusedRoom) resetFocus();
-            focusedRoom = e;
-            console.log(focusedRoom.feature.properties.name + " focused")
-            map.fitBounds(e.getBounds());
-            updateHilight(); // might not move
-            focusedRoom.setStyle(
-                {
-                    weight: 6
-                });
-            if (dynamicNavigation) {
-                params.set("room", e.feature.properties.name);
-                window.history.pushState(null, '', window.location.pathname + '?' + params.toString());
-            }
-        }
-
-        function updateFocus() {
-            if (focusedRoom == null) return;
-            if (!map.getBounds().overlaps(focusedRoom.getBounds())) {
-                resetFocus();
-            }
-        }
-
-        function resetFocus() {
-            if (focusedRoom == null) return;
-            console.log(focusedRoom.feature.properties.name + " no longer focused")
-            focusedRoom.setStyle(
-                {
-                    weight: 0
-                });
-            focusedRoom = null;
-        }
-
-        // Params
-        let params = new URLSearchParams(document.location.search);
-        var region = params.get("region");
-        if (region == null) {
-            window.location.href = "index.html";
-        }
-        var modded = params.get("modded") == 'on' || ['SU', 'HI', 'DS', 'CC', 'GW', 'SH', 'SL', 'SI', 'LF', 'UW', 'SS', 'SB'].indexOf(region) == -1;
-        var room = params.get("room");
-        var folderpath = 'tiles/' + (modded ? 'modded' : 'vanilla') + '/' + region + '/';
-
-        // Map
-        var map = L.map('mapid', {
-            minZoom: -7,
-            maxZoom: 3, // 8x
-            crs: L.CRS.Simple,
-        });
-        map.attributionControl.setPrefix('Powered by <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> &amp <a href="https://github.com/henpemaz" title="Gamedev &amp associated arts enthusiast">Henpemaz</a>')
-        map.setView([0, 0], -5);
-
-        // Events
-        map.on('click', function (e) { if (e.originalEvent.target == map._container) resetFocus(); });
-        // remove room highlight on maxed zoom
-        map.on('zoomend', updateHilight);
-        map.on('moveend', updateFocus);
-        L.Tooltip.include({
-            setOpacity: function (o) { } // fuck you, don't style my elements unless I tell you to.
-        });
-        // on Room Names view, prevent hover popups from displaying
-        map.on('overlayadd', function (e) {
-            if (e.name == "Room Names") {
-                document.getElementById('hoverlabels').sheet.cssRules[0].style.display = 'none';
-            }
-        });
-        map.on('overlayremove', function (e) {
-            if (e.name == "Room Names") {
-                document.getElementById('hoverlabels').sheet.cssRules[0].style.removeProperty("display");
-            }
-        });
-
-        // Overlay control
-        var overlays = new L.Control.Layers.UnstupidLayer(null, null, {
-            overlayInputClass: "rw-ui",
-            overlayInputLabelClass: "overlay-label",
-        });
-        overlays.addTo(map);
-        document.getElementById('layer-content').appendChild(overlays.getContainer());
-
-        // Tileset layer
-        var tileLayer = L.tileLayer(folderpath + '{z}/{x}_{y}.png', {
-            attribution: "<a href=\"https://store.steampowered.com/app/312520/Rain_World/\">Rain World</a> by <a href=\"https://twitter.com/VideocultMedia\">Videocult</a>",
-            minZoom: -7,
-            maxZoom: 3,
-            maxNativeZoom: 0 // important, stop requesting tiles at this point
-        }).addTo(map);
-
-        // Region stuff
-        var roomsLayer;
-        var roomNames;
-        var lastRoomFocused;
-        var connectionsLayer;
-        var geometryLayer;
-        var densLayer;
-        getJsonObject(folderpath + "region.json", function (json) {
-            // Background color
-            map.getContainer().style.backgroundColor = 'rgb(' + json["bgcolor"].join(',') + ')'; // I hate this with passion
-
-            roomNames = L.layerGroup();
-            // Room features and name popups
-            roomsLayer = L.geoJSON(json["room_features"], {
-                style: {
-                    weight: 0,
-                    color: 'rgb(' + json["highlightcolor"].join(',') + ')',
-                    fillOpacity: 0
-                },
-                onEachFeature: function (feature, layer) {
-                    // Room focus stuff
-                    layer.on({
-                        mouseover: hilightRoom,
-                        mouseout: resetHilight,
-                        click: focusRoom,
-                        tooltipopen: function (e) {
-                            e.tooltip.setLatLng(L.latLng([].concat(e.target.feature.properties.popupcoords).reverse()));
-                            e.tooltip.getElement().style.removeProperty('opacity'); // 'defaults' amirite
-                        },
-                    });
-
-                    L.tooltip({ direction: "center", offset: [0, -14], permanent: true, className: "rw-text room-labels" }, layer).setContent(feature.properties.name).setLatLng(L.latLng([].concat(feature.properties.popupcoords).reverse())).addTo(roomNames);
-
-                    layer.bindTooltip(feature.properties.name, { direction: "center", offset: [0, -14], interactive: true, className: "rw-text room-labels hover-label" });
-                }
-            }).addTo(map);
-            overlays.addOverlay(roomsLayer, "Rooms");
-            roomNames.addTo(map);
-            overlays.addOverlay(roomNames, "Room Names");
-
-            // Connections
-            connectionsLayer = new L.BezierGeoJSON(json["connection_features"], {
-                color: 'rgba(' + json["shortcutcolor"].join(',') + ',0.72)', // so the white looks better
-                weight: 2,
-                lineCap: "butt", // hehe
-                dashArray: "5 8",
-                interactive: false,
-            }).addTo(map);
-            overlays.addOverlay(connectionsLayer, "Connections");
-
-            // Geometry
-            geometryLayer = L.geoJSON(json["geo_features"], {
-                interactive: false,
-                color: 'rgb(' + json["geocolor"].join(',') + ')',
-                weight: 2,
-                lineCap: "butt", // im easily entertained
-                lineJoin: "miter",
-            }).addTo(map);
-            overlays.addOverlay(geometryLayer, "Geometry");
-
-            // Spawns
-            densLayer = L.geoJSON(json["spawn_features"], {
-                pointToLayer: function (feature, latlng) {
-                    // Spawns are organized by dens, dens list spawns in it, flexbox stacks them visually on the den location, filter classes control visib
-                    let divhtml = "";
-                    for (let spawn of feature.properties.spawns) {
-                        let spawn_filter = "";
-                        for (let dif of spawn.difficulties) {
-                            spawn_filter += " spawn-filter-" + dif;
-                        }
-                        if (spawn.is_lineage) {
-                            // lineages are vertical stacks
-                            divhtml += '<div class="spawn-entry' + spawn_filter + '">'
-                            for (let i = 0; i < spawn.lineage.length; i++) {
-                                divhtml += '<div class="lineage-entry"><img class="icon-image" src="./resources/icons/' + icon_by_name[spawn.lineage[i]] + '"/>' +
-                                    '<div class="icon-label">' + (spawn.lineage_probs[i] * 100) + '%</div></div>';
-                            }
-                            divhtml += '</div>';
-                        } else {
-                            divhtml += '<div class="spawn-entry' + spawn_filter + '"><img class="icon-image" src="./resources/icons/' + icon_by_name[spawn.creature] + '"/>' +
-                                '<div class="icon-label">x' + spawn.amount + '</div></div>';
-                        }
-                    }
-                    return L.marker(latlng, {
-                        icon: L.divIcon({
-                            className: 'spawn-divs',
-                            html: divhtml,
-                        }),
-                        interactive: false,
-                    });
-                },
-            }).addTo(map);
-            overlays.addOverlay(densLayer, "Spawns");
-
-            // Zoom to room on rooms loaded
-            if (room != null) {
-                for (let l of roomsLayer.getLayers()) {
-                    if (l.feature.properties.name == room) {
-                        map.fitBounds(l.getBounds());
-                        break;
-                    }
-                }
-            }
-
-            selectDifficulty(0);
-        }, true);
-
         // misc iconography but mostly Spawns
         var icon_by_name = {
             "clear": "00_clear.png",
@@ -620,6 +302,404 @@
             //## Missing stuff
             "Garbage Worm": "00_clear.png",
         }
+
+        var regions = {
+            "SU": "OUTSKIRTS",
+            "HI": "INDUSTRIAL COMPLEX",
+            "DS": "DRAINAGE SYSTEM",
+            "CC": "CHIMNEY CANOPY",
+            "GW": "GARBAGE WASTES",
+            "SH": "SHADED CITADEL",
+            "SL": "SHORELINE",
+            "SI": "SKY ISLANDS",
+            "LF": "FARM ARRAYS",
+            "UW": "THE EXTERIOR",
+            "SS": "FIVE PEBBLES",
+            "SB": "SUBTERRANEAN"
+        };
+        var modded_regions = {
+            "AB": "ARID BARRENS",
+            "AR": "AETHER RIDGE",
+            "BL": "BADLANDS",
+            "CG": "CONCEALED GARDEN",
+            "DW": "DESERTED WASTELANDS",
+            "LP": "FORGOTTEN BOILER",
+            "LW": "LUSH MIRE",
+            "TM": "THE MAST",
+            "UB": "UNDERBELLY",
+            "US": "UNDERSEA"
+        };
+
+        function updateRegionList(checked) {
+            document.getElementById('modded-ckb').checked = checked;
+            var html = "";
+            for (var r in regions) {
+                html += '<label><div class="region-btn"><input type="radio" class="rw-ui" name="regions" onclick="selectRegion(this.value);" value="' + r + '"' + (r == region ? ' checked="checked"' : '') + ' autocomplete="off"><span>' + regions[r] + '</span></div></label>'
+            }
+            if (checked) {
+                for (var r in modded_regions) {
+                    html += '<label><div class="region-btn"><input type="radio" class="rw-ui" name="regions" onclick="selectRegion(this.value);" value="' + r + '"' + (r == region ? ' checked="checked"' : '') + ' autocomplete="off"><span>' + modded_regions[r] + '</span></div></label>'
+                }
+            }
+            document.getElementById('region-select').innerHTML = html;
+        }
+
+        function selectRegion(value) {
+            console.log(value);
+            modded = document.getElementById('modded-ckb').checked
+            region = value;
+            updateRegionList(modded);
+            loadRegion(region, modded);
+        }
+
+        // acquire json
+        var requestLock = {};
+        var lastRequest = null;
+        function getJsonObject(url, cb, async = true) {
+            if (lastRequest != null) lastRequest.abort();
+            let request = new XMLHttpRequest();
+            lastRequest = request;
+            requestLock = {};
+            request.requestLock = requestLock;
+            request.open('GET', url, async);
+            request.onreadystatechange = function () {
+                if (request.requestLock != requestLock && request.status != 0) {
+                    request.abort();
+                    console.log("request for " + url + " aborted!");
+                }
+                else if (request.readyState === 4 && request.status === 200) {
+                    try {
+                        cb(JSON.parse(request.responseText));
+                    } catch (err) {
+                        console.log(err);
+                    }
+                    if (lastRequest == request) lastRequest = null;
+                }
+            }
+            request.send();
+        }
+
+        // Control with poor control options, whodvathot
+        // layer control with control over the classnames
+        L.Control.Layers.UnstupidLayer = L.Control.Layers.extend(
+            {
+                options: {
+                    collapsed: false,
+                    containerClass: "",
+                    sectionClass: "",
+                    overlaysListClass: "",
+                    overlayInputClass: "",
+                    overlayInputDivClass: "",
+                    overlayInputLabelClass: "",
+                    hideBaseLayers: true
+                },
+                _addItem: function (obj) {
+                    let h = L.Control.Layers.prototype._addItem.call(this, obj);
+                    h.className = this.options.overlayInputDivClass;
+                    h.children[0].className = this.options.overlayInputLabelClass;
+                    h.children[0].children[0].className = this.options.overlayInputClass;
+                    return h;
+                },
+                _initLayout: function () {
+                    L.Control.Layers.prototype._initLayout.call(this);
+                    this._container.className = this.options.containerClass;
+                    this._section.className = this.options.sectionClass;
+                    if (this.options.hideBaseLayers) {
+                        this._baseLayersList.style.display = "none";
+                        this._layersLink.style.display = "none";
+                    }
+                    this._overlaysList.className = this.options.overlaysListClass;
+                },
+                expand: function () { }
+            }
+        );
+
+        // update difficulty filters
+        function selectDifficulty (n) {
+            // Elements have a combination of these filters
+            // as long as one matches, it should be displayed
+            // parent class hides it, and if one of the sub classes unhides it we're good
+            var sheet = document.getElementById('spawnfilters').sheet;
+            for (var rule of sheet.cssRules) {
+                if (rule.selectorText.startsWith(".spawn-filter-")) {
+                    if (rule.selectorText.endsWith(n)) { // Show
+                        rule.style.display = "initial";
+                    }
+                    else {
+                        rule.style.removeProperty("display"); // unset
+                    }
+                }
+            }
+            document.difficulty.difficulties[n].checked = true;
+        }
+
+        var dynamicNavigation; // Stupid browsers
+        if ('URLSearchParams' in window && 'pushState' in window.history) {
+            dynamicNavigation = true;
+        }
+
+        // Room hover & select stuff
+        var hilightedRoom;
+        function hilightRoom(e) {
+            if (e.target) e = e.target;
+            resetHilight();
+            hilightedRoom = e;
+            if (map.getZoom() < 0 && hilightedRoom != focusedRoom) {
+                e.setStyle({
+                    fillOpacity: 0.2
+                });
+            }
+        }
+
+        function updateHilight() {
+            if (hilightedRoom == null) return;
+            if (map.getZoom() < 0 && hilightedRoom != focusedRoom) {
+                hilightedRoom.setStyle({
+                    fillOpacity: 0.2
+                });
+            } else {
+                hilightedRoom.setStyle({
+                    fillOpacity: 0
+                });
+            }
+        }
+
+        function resetHilight() {
+            if (hilightedRoom == null) return;
+            hilightedRoom.setStyle({
+                fillOpacity: 0
+            });
+            hilightedRoom = null;
+        }
+
+        var focusedRoom;
+        function focusRoom(e) {
+            if (e.target) e = e.target;
+            if (e != focusedRoom) resetFocus();
+            focusedRoom = e;
+            console.log(focusedRoom.feature.properties.name + " focused")
+            map.fitBounds(e.getBounds());
+            updateHilight(); // might not move
+            focusedRoom.setStyle(
+                {
+                    weight: 6
+                });
+            if (dynamicNavigation) {
+                params.set("room", e.feature.properties.name);
+                window.history.pushState(null, '', window.location.pathname + '?' + params.toString());
+            }
+        }
+
+        function updateFocus() {
+            if (focusedRoom == null) return;
+            if (!map.getBounds().overlaps(focusedRoom.getBounds())) {
+                resetFocus();
+            }
+        }
+
+        function resetFocus() {
+            if (focusedRoom == null) return;
+            console.log(focusedRoom.feature.properties.name + " no longer focused")
+            focusedRoom.setStyle(
+                {
+                    weight: 0
+                });
+            focusedRoom = null;
+        }
+
+        // Map
+        var map = L.map('mapid', {
+            minZoom: -7,
+            maxZoom: 3, // 8x
+            crs: L.CRS.Simple,
+            zoomControl: false,
+        });
+        map.attributionControl.setPrefix('Powered by <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> &amp <a href="https://github.com/henpemaz" title="Gamedev &amp associated arts enthusiast">Henpemaz</a>')
+        map.setView([0, 0], -5);
+
+        // Events
+        map.on('click', function (e) { if (e.originalEvent.target == map._container) resetFocus(); });
+        // remove room highlight on maxed zoom
+        map.on('zoomend', updateHilight);
+        map.on('moveend', updateFocus);
+        L.Tooltip.include({
+            setOpacity: function (o) { } // fuck you, don't style my elements unless I tell you to.
+        });
+        // on Room Names view, prevent hover popups from displaying
+        map.on('overlayadd', function (e) {
+            if (e.name == "Room Names") {
+                document.getElementById('hoverlabels').sheet.cssRules[0].style.display = 'none';
+            }
+        });
+        map.on('overlayremove', function (e) {
+            if (e.name == "Room Names") {
+                document.getElementById('hoverlabels').sheet.cssRules[0].style.removeProperty("display");
+            }
+        });
+
+        // Overlay control
+        var overlays = new L.Control.Layers.UnstupidLayer(null, null, {
+            overlayInputClass: "rw-ui",
+            overlayInputLabelClass: "overlay-label",
+        });
+        overlays.addTo(map);
+        document.getElementById('layer-content').appendChild(overlays.getContainer());
+
+        // Region stuff
+        var tileLayer;
+        var roomsLayer;
+        var roomNames;
+        var lastRoomFocused;
+        var connectionsLayer;
+        var geometryLayer;
+        var densLayer;
+
+        function loadRegion(pregion, pmodded) {
+            region = pregion;
+            modded = pmodded;
+            var folderpath = 'tiles/' + (modded ? 'modded' : 'vanilla') + '/' + region + '/';
+            getJsonObject(folderpath + "region.json", function (json) {
+                // Background color
+                map.getContainer().style.backgroundColor = 'rgb(' + json["bgcolor"].join(',') + ')'; // I hate this with passion, but such is the way of the CSS
+
+                // Tileset layer
+                if (tileLayer != null) map.removeLayer(tileLayer);
+                tileLayer = L.tileLayer(folderpath + '{z}/{x}_{y}.png', {
+                    attribution: "<a href=\"https://store.steampowered.com/app/312520/Rain_World/\">Rain World</a> by <a href=\"https://twitter.com/VideocultMedia\">Videocult</a>",
+                    minZoom: -7,
+                    maxZoom: 3,
+                    maxNativeZoom: 0 // important, stop requesting tiles at this point
+                }).addTo(map);
+
+                // Room features and name popups
+                if (roomNames != null) {
+                    overlays.removeLayer(roomNames);
+                    map.removeLayer(roomNames);
+                }
+                if (roomsLayer != null) {
+                    overlays.removeLayer(roomsLayer);
+                    map.removeLayer(roomsLayer);
+                }
+                roomNames = L.layerGroup();
+                roomsLayer = L.geoJSON(json["room_features"], {
+                    style: {
+                        weight: 0,
+                        color: 'rgb(' + json["highlightcolor"].join(',') + ')',
+                        fillOpacity: 0
+                    },
+                    onEachFeature: function (feature, layer) {
+                        // Room focus stuff
+                        layer.on({
+                            mouseover: hilightRoom,
+                            mouseout: resetHilight,
+                            click: focusRoom,
+                            tooltipopen: function (e) {
+                                e.tooltip.setLatLng(L.latLng([].concat(e.target.feature.properties.popupcoords).reverse()));
+                                e.tooltip.getElement().style.removeProperty('opacity'); // 'defaults' amirite
+                            },
+                        });
+
+                        L.tooltip({ direction: "center", offset: [0, -14], permanent: true, className: "rw-text room-labels" }, layer).setContent(feature.properties.name).setLatLng(L.latLng([].concat(feature.properties.popupcoords).reverse())).addTo(roomNames);
+
+                        layer.bindTooltip(feature.properties.name, { direction: "center", offset: [0, -14], interactive: true, className: "rw-text room-labels hover-label" });
+                    }
+                }).addTo(map);
+                overlays.addOverlay(roomsLayer, "Rooms");
+                roomNames.addTo(map);
+                overlays.addOverlay(roomNames, "Room Names");
+
+                // Connections
+                if (connectionsLayer != null) {
+                    overlays.removeLayer(connectionsLayer);
+                    map.removeLayer(connectionsLayer);
+                }
+                connectionsLayer = new L.BezierGeoJSON(json["connection_features"], {
+                    color: 'rgba(' + json["shortcutcolor"].join(',') + ',0.72)', // so the white looks better
+                    weight: 2,
+                    lineCap: "butt", // hehe
+                    dashArray: "5 8",
+                    interactive: false,
+                }).addTo(map);
+                overlays.addOverlay(connectionsLayer, "Connections");
+
+                // Geometry
+                if (geometryLayer != null) {
+                    overlays.removeLayer(geometryLayer);
+                    map.removeLayer(geometryLayer);
+                }
+                geometryLayer = L.geoJSON(json["geo_features"], {
+                    interactive: false,
+                    color: 'rgb(' + json["geocolor"].join(',') + ')',
+                    weight: 2,
+                    lineCap: "butt", // im easily entertained
+                    lineJoin: "miter",
+                }).addTo(map);
+                overlays.addOverlay(geometryLayer, "Geometry");
+
+                // Spawns
+                if (densLayer != null) {
+                    overlays.removeLayer(densLayer);
+                    map.removeLayer(densLayer);
+                }
+                densLayer = L.geoJSON(json["spawn_features"], {
+                    pointToLayer: function (feature, latlng) {
+                        // Spawns are organized by dens, dens list spawns in it, flexbox stacks them visually on the den location, filter classes control visib
+                        let divhtml = "";
+                        for (let spawn of feature.properties.spawns) {
+                            let spawn_filter = "";
+                            for (let dif of spawn.difficulties) {
+                                spawn_filter += " spawn-filter-" + dif;
+                            }
+                            if (spawn.is_lineage) {
+                                // lineages are vertical stacks
+                                divhtml += '<div class="spawn-entry' + spawn_filter + '">'
+                                for (let i = 0; i < spawn.lineage.length; i++) {
+                                    divhtml += '<div class="lineage-entry"><img class="icon-image" src="./resources/icons/' + icon_by_name[spawn.lineage[i]] + '"/>' +
+                                        '<div class="icon-label">' + (spawn.lineage_probs[i] * 100) + '%</div></div>';
+                                }
+                                divhtml += '</div>';
+                            } else {
+                                divhtml += '<div class="spawn-entry' + spawn_filter + '"><img class="icon-image" src="./resources/icons/' + icon_by_name[spawn.creature] + '"/>' +
+                                    '<div class="icon-label">x' + spawn.amount + '</div></div>';
+                            }
+                        }
+                        return L.marker(latlng, {
+                            icon: L.divIcon({
+                                className: 'spawn-divs',
+                                html: divhtml,
+                            }),
+                            interactive: false,
+                        });
+                    },
+                }).addTo(map);
+                overlays.addOverlay(densLayer, "Spawns");
+
+                // Zoom to room on rooms loaded
+                if (room != null) {
+                    for (let l of roomsLayer.getLayers()) {
+                        if (l.feature.properties.name == room) {
+                            map.fitBounds(l.getBounds());
+                            break;
+                        }
+                    }
+                }
+            }, true);
+        }
+
+        // Params
+        var params = new URLSearchParams(document.location.search);
+        var region = params.get("region");
+        if (region == null) {
+            window.location.href = "index.html";
+        }
+        var modded = params.get("modded") == 'on' || ['SU', 'HI', 'DS', 'CC', 'GW', 'SH', 'SL', 'SI', 'LF', 'UW', 'SS', 'SB'].indexOf(region) == -1;
+        var room = params.get("room");
+
+        // Initial load
+
+        updateRegionList();
+        selectDifficulty(0);
+        loadRegion(region, modded);
 
     </script>
 </body>
