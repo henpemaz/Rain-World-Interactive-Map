@@ -305,42 +305,23 @@
             "Garbage Worm": "00_clear.png",
         }
 
-        var regions = {
-            "SU": "OUTSKIRTS",
-            "HI": "INDUSTRIAL COMPLEX",
-            "DS": "DRAINAGE SYSTEM",
-            "CC": "CHIMNEY CANOPY",
-            "GW": "GARBAGE WASTES",
-            "SH": "SHADED CITADEL",
-            "SL": "SHORELINE",
-            "SI": "SKY ISLANDS",
-            "LF": "FARM ARRAYS",
-            "UW": "THE EXTERIOR",
-            "SS": "FIVE PEBBLES",
-            "SB": "SUBTERRANEAN"
-        };
-        var modded_regions = {
-            "AB": "ARID BARRENS",
-            "AR": "AETHER RIDGE",
-            "BL": "BADLANDS",
-            "CG": "CONCEALED GARDEN",
-            "DW": "DESERTED WASTELANDS",
-            "LP": "FORGOTTEN BOILER",
-            "LW": "LUSH MIRE",
-            "TM": "THE MAST",
-            "UB": "UNDERBELLY",
-            "US": "UNDERSEA"
-        };
+        var region_order = ['SU', 'HI', 'DS', 'CC', 'GW', 'SH', 'SL', 'SI', 'LF', 'UW', 'SS', 'SB'];
+        // dumped region dicts from running the generateGeoJSON scripts
+        var regions = { "CC": "Chimney Canopy", "DS": "Drainage System", "GW": "Garbage Wastes", "HI": "Industrial Complex", "LF": "Farm Arrays", "SB": "Subterranean", "SH": "Shaded Citadel", "SI": "Sky Islands", "SL": "Shoreline", "SS": "Five Pebbles", "SU": "Outskirts", "UW": "The Exterior" };
+        var modded_regions = { "AB": "Arid Barrens", "AR": "Aether Ridge", "BL": "Badlands", "CC": "Chimney Canopy", "CG": "Concealed Garden", "DS": "Drainage System", "DW": "Deserted Wastelands", "FI": "Floating Isles", "GW": "Garbage Wastes", "HI": "Industrial Complex", "LF": "Farm Arrays", "LP": "Forgotten Boiler", "LW": "Lush Mire", "RW": "Side House", "SB": "Subterranean", "SH": "Shaded Citadel", "SI": "Sky Islands", "SL": "Shoreline", "SS": "Five Pebbles", "SU": "Outskirts", "SW": "Swamplands", "TM": "The Mast", "TR": "The Root", "UB": "Underbelly", "US": "Undersea", "UW": "The Exterior" };
 
         function updateRegionList(checked) {
             document.getElementById('modded-ckb').checked = checked;
             var html = "";
-            for (var r in regions) {
-                html += '<label><div class="region-btn"><input type="radio" class="rw-ui" name="regions" onclick="selectRegion(this.value);" value="' + r + '"' + (r == region ? ' checked="checked"' : '') + ' autocomplete="off"><span>' + regions[r] + '</span></div></label>'
+            // vanilla go in a special order
+            for (var r of region_order) {
+                html += '<label><div class="region-btn"><input type="radio" class="rw-ui" name="regions" onclick="selectRegion(this.value);" value="' + r + '"' + (r == region ? ' checked="checked"' : '') + ' autocomplete="off"><span>' + regions[r].toUpperCase() + '</span></div></label>'
             }
             if (checked) {
+                // modded go alphabetically no repeats
                 for (var r in modded_regions) {
-                    html += '<label><div class="region-btn"><input type="radio" class="rw-ui" name="regions" onclick="selectRegion(this.value);" value="' + r + '"' + (r == region ? ' checked="checked"' : '') + ' autocomplete="off"><span>' + modded_regions[r] + '</span></div></label>'
+                    if (!(regions[r] == undefined)) continue;
+                    html += '<label><div class="region-btn"><input type="radio" class="rw-ui" name="regions" onclick="selectRegion(this.value);" value="' + r + '"' + (r == region ? ' checked="checked"' : '') + ' autocomplete="off"><span>' + modded_regions[r].toUpperCase() + '</span></div></label>'
                 }
             }
             document.getElementById('region-select').innerHTML = html;
@@ -697,10 +678,11 @@
         // Params
         var params = new URLSearchParams(document.location.search);
         var region = params.get("region");
-        if (region == null) {
+
+        if (region == null) { // Back to region select, fucko
             window.location.href = "index.html";
         }
-        var modded = params.get("modded") == 'on' || ['SU', 'HI', 'DS', 'CC', 'GW', 'SH', 'SL', 'SI', 'LF', 'UW', 'SS', 'SB'].indexOf(region) == -1;
+        var modded = params.get("modded") == 'on' || region_order.indexOf(region) == -1;
         var room = params.get("room");
 
         // Initial load

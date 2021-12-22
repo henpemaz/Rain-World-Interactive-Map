@@ -88,6 +88,7 @@
             #regionlist-modded.rl-hidden {
                 opacity: 0;
                 width: 0;
+                height: 0;
             }
 
             #regionlist-modded > .rw-ui {
@@ -125,35 +126,29 @@
         <div class="rw-title">Rain World</div>
         <div class="rw-bigtext" style="text-align: center; margin-top:0.5em;">I'm lost in...</div>
         <div id="regionlist-group">
-            <div id="regionlist-vanilla">
-                <button class="region-button rw-ui rw-text" name="region" value="SU">OUTSKIRTS</button><br />
-                <button class="region-button rw-ui rw-text" name="region" value="HI">INDUSTRIAL COMPLEX</button><br />
-                <button class="region-button rw-ui rw-text" name="region" value="DS">DRAINAGE SYSTEM</button><br />
-                <button class="region-button rw-ui rw-text" name="region" value="CC">CHIMNEY CANOPY</button><br />
-                <button class="region-button rw-ui rw-text" name="region" value="GW">GARBAGE WASTES</button><br />
-                <button class="region-button rw-ui rw-text" name="region" value="SH">SHADED CITADEL</button><br />
-                <button class="region-button rw-ui rw-text" name="region" value="SL">SHORELINE</button><br />
-                <button class="region-button rw-ui rw-text" name="region" value="SI">SKY ISLANDS</button><br />
-                <button class="region-button rw-ui rw-text" name="region" value="LF">FARM ARRAYS</button><br />
-                <button class="region-button rw-ui rw-text" name="region" value="UW">THE EXTERIOR</button><br />
-                <button class="region-button rw-ui rw-text" name="region" value="SS">FIVE PEBBLES</button><br />
-                <button class="region-button rw-ui rw-text" name="region" value="SB">SUBTERRANEAN</button><br />
-            </div>
-            <div id="regionlist-modded" class="rl-hidden">
-                <button class="region-button rw-ui rw-text" name="region" value="AB">ARID BARRENS</button><br />
-                <button class="region-button rw-ui rw-text" name="region" value="AR">AETHER RIDGE</button><br />
-                <button class="region-button rw-ui rw-text" name="region" value="BL">BADLANDS</button><br />
-                <button class="region-button rw-ui rw-text" name="region" value="CG">CONCEALED GARDEN</button><br />
-                <button class="region-button rw-ui rw-text" name="region" value="DW">DESERTED WASTELANDS</button><br />
-                <button class="region-button rw-ui rw-text" name="region" value="LP">FORGOTTEN BOILER</button><br />
-                <button class="region-button rw-ui rw-text" name="region" value="LW">LUSH MIRE</button><br />
-                <button class="region-button rw-ui rw-text" name="region" value="TM">THE MAST</button><br />
-                <button class="region-button rw-ui rw-text" name="region" value="UB">UNDERBELLY</button><br />
-                <button class="region-button rw-ui rw-text" name="region" value="US">UNDERSEA</button><br />
-            </div>
+            <div id="regionlist-vanilla"></div>
+            <div id="regionlist-modded" class="rl-hidden"></div>
         </div>
         <div id="modded-ckb-group"><input type="checkbox" id="modded-ckb" name="modded" class="rw-ui rw-ui-ckb" autocomplete="off" /><label for="modded-ckb" class="rw-text">Modded</label></div>
         <script>
+            var region_order = ['SU', 'HI', 'DS', 'CC', 'GW', 'SH', 'SL', 'SI', 'LF', 'UW', 'SS', 'SB'];
+            // dumped region dicts from running the generateGeoJSON scripts
+            var regions = { "CC": "Chimney Canopy", "DS": "Drainage System", "GW": "Garbage Wastes", "HI": "Industrial Complex", "LF": "Farm Arrays", "SB": "Subterranean", "SH": "Shaded Citadel", "SI": "Sky Islands", "SL": "Shoreline", "SS": "Five Pebbles", "SU": "Outskirts", "UW": "The Exterior" };
+            var modded_regions = { "AB": "Arid Barrens", "AR": "Aether Ridge", "BL": "Badlands", "CC": "Chimney Canopy", "CG": "Concealed Garden", "DS": "Drainage System", "DW": "Deserted Wastelands", "FI": "Floating Isles", "GW": "Garbage Wastes", "HI": "Industrial Complex", "LF": "Farm Arrays", "LP": "Forgotten Boiler", "LW": "Lush Mire", "RW": "Side House", "SB": "Subterranean", "SH": "Shaded Citadel", "SI": "Sky Islands", "SL": "Shoreline", "SS": "Five Pebbles", "SU": "Outskirts", "SW": "Swamplands", "TM": "The Mast", "TR": "The Root", "UB": "Underbelly", "US": "Undersea", "UW": "The Exterior" };
+            var html = "";
+            // vanilla go in a special order
+            for (var r of region_order) {
+                html += '<button class="region-button rw-ui rw-text" name="region" value="' + r + '">' + regions[r].toUpperCase() + '</button><br />'
+            }
+            document.getElementById('regionlist-vanilla').innerHTML = html;
+            html = "";
+            // modded go alphabetically no repeats
+            for (var r in modded_regions) {
+                if (!(regions[r] == undefined)) continue;
+                html += '<button class="region-button rw-ui rw-text" name="region" value="' + r + '">' + modded_regions[r].toUpperCase() + '</button><br />'
+            }
+            document.getElementById('regionlist-modded').innerHTML = html;
+
             var updateVisibility = function () {
                 let ckb = document.getElementById('modded-ckb');
                 let moddedRegions = document.getElementById('regionlist-modded');
