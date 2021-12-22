@@ -253,7 +253,9 @@
             "Snail": "30_snailturtle.png",
             "Leech": "31_redleech.png",
             "Sea Leech": "32_blueleech.png",
+            "SeaLeech": "32_blueleech.png",
             "Mimic": "33_poleplant.png",
+            "PoleMimic": "33_poleplant.png",
             "TentaclePlant": "34_monsterkelp.png",
             "Tentacle Plant": "34_monsterkelp.png",
             "Scavenger": "35_scavenger.png",
@@ -654,11 +656,17 @@
                                 // lineages are vertical stacks
                                 divhtml += '<div class="spawn-entry' + spawn_filter + '">'
                                 for (let i = 0; i < spawn.lineage.length; i++) {
+                                    if (!(spawn.lineage[i] in icon_by_name)) {
+                                        console.log("missing icon for " + spawn.lineage[i]);
+                                    }
                                     divhtml += '<div class="lineage-entry"><img class="icon-image" src="./resources/icons/' + icon_by_name[spawn.lineage[i]] + '"/>' +
-                                        '<div class="icon-label">' + (spawn.lineage_probs[i] * 100) + '%</div></div>';
+                                        '<div class="icon-label">' + Number.parseFloat(Number.parseFloat(spawn.lineage_probs[i] * 100).toPrecision(3)) + '%</div></div>';
                                 }
                                 divhtml += '</div>';
                             } else {
+                                if (!(spawn.creature in icon_by_name)) {
+                                    console.log("missing icon for " + spawn.creature);
+                                }
                                 divhtml += '<div class="spawn-entry' + spawn_filter + '"><img class="icon-image" src="./resources/icons/' + icon_by_name[spawn.creature] + '"/>' +
                                     '<div class="icon-label">x' + spawn.amount + '</div></div>';
                             }

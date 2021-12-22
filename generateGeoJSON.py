@@ -35,22 +35,18 @@ def collinear(p0, p1, p2):
 with open("config.json") as config_file:
     config = json.load(config_file)
 
-game_root = config["game_folder"]
 screenshots_root = config["screenshots_folder"]
 output_folder = config["output_folder"]
 
-world_folder = joinCI(game_root, "World")
-gates_folder = joinCI(world_folder, "Gates")
-regions_folder = joinCI(world_folder, "Regions")
-
-debug_one_region = True
+debug_one_region = False
 optimize_geometry = True
+skip_to = "RW"
 
-task_export_tiles = False
+task_export_tiles = True
 task_export_features = True
-task_export_room_features = False
-task_export_connection_features = False
-task_export_geo_features = False
+task_export_room_features = True
+task_export_connection_features = True
+task_export_geo_features = True
 task_export_spawn_features = True
 
 for entry in os.scandir(screenshots_root):
@@ -58,6 +54,11 @@ for entry in os.scandir(screenshots_root):
         continue
     if debug_one_region and entry.name != "SU":
         continue
+
+    if skip_to != None and entry.name != skip_to:
+        continue
+    skip_to = None
+
 
     print("Found region:", entry.name)
     with open(joinCI(entry.path, "metadata.json")) as metadata:
@@ -373,6 +374,8 @@ for entry in os.scandir(screenshots_root):
             # read spawns, group spawns into dens (dens have a position)
             dens = {}
             for spawnentry in regiondata["spawns"]:
+                if not spawnentry.strip():
+                    continue
                 print("processing " + spawnentry)
                 if spawnentry.startswith("("):
                     # TODO slugbase support
@@ -384,6 +387,23 @@ for entry in os.scandir(screenshots_root):
                     difficulties = [0,1,2]
                 arr = spawnentry.split(" : ")
                 if arr[0] == "LINEAGE":
+                    if len(arr) < 3 :
+                        print("faulty spawn! missing stuff: " + spawnentry)
+                        continue
+                    room_name = arr[1]
+                    den_index = arr[2]
+                    if room_name != "OFFSCREEN" and room_name not in regiondata["rooms"]:
+                        print("faulty spawn! missing room: " + room_name + " : " + spawnentry)
+                        continue
+                    if room_name != "OFFSCREEN" and len(regiondata["rooms"][room_name]["nodes"]) <= int(den_index):
+                        print("faulty spawn! den index over room nodes: " + spawnentry)
+                        continue
+                    if room_name != "OFFSCREEN":
+                        node = regiondata["rooms"][room_name]["nodes"][int(den_index)]
+                        tiles = regiondata["rooms"][room_name]["tiles"]
+                        if tiles[node[1]][node[0]][2] != 4:
+                            print("faulty spawn! not a den: " + spawnentry)
+                            continue
 
                     spawn = {}
                     spawn["difficulties"] = difficulties
@@ -408,14 +428,25 @@ for entry in os.scandir(screenshots_root):
                         spawn["difficulties"] = difficulties
                         spawn["is_lineage"] = False
                         den_index,spawn["creature"], *attr = creature_desc.split("-",2)
+
+                        if room_name  != "OFFSCREEN" and room_name not in regiondata["rooms"]:
+                            print("faulty spawn! missing room: " + room_name + " : " + creature_desc)
+                            continue
+                        if room_name  != "OFFSCREEN" and len(regiondata["rooms"][room_name]["nodes"]) <= int(den_index):
+                            print("faulty spawn! den index over room nodes: " + room_name + " : " + creature_desc)
+                            continue
                         
                         spawn["amount"] = 1
                         if attr:
                             # TODO read creature attributes
                             if not attr[0].endswith("}"):
-                                spawn["amount"] = int(attr[0].rsplit("-",1)[-1])
-                    
+                                try:
+                                    spawn["amount"] = int(attr[0].rsplit("-",1)[-1])
+                                except: # RW_C16 : 2-Tube Worm-2h moment
+                                    print("faulty spawn! couldnt parse attribute/amount: " + room_name + " : " + creature_desc)
+                                    continue
                         if spawn["creature"] == "Spider 10": ## Bruh...
+                            print("faulty spawn! stupid spiders: " + room_name + " : " + creature_desc)
                             continue ## Game doesnt parse it, so wont I
                         denkey = room_name+ ":" +den_index # room:den
                         if denkey in dens:
