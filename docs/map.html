@@ -339,7 +339,6 @@
             }
         }
 
-        // update difficulty filters
         function selectDifficulty(n) {
             // Elements have a combination of these filters
             // as long as one matches, it should be displayed
@@ -520,10 +519,10 @@
                 }
             }
             if (!foundRoom) {
-                if (room != null) {
-                    room = null;
-                    pushState();
-                }
+                //if (room != null) {
+                //    room = null;
+                //    pushState();
+                //}
                 resetFocus();
                 map.setView([0, 0], -5);
             }
@@ -816,12 +815,6 @@
                 loadedModded = pmodded;
             }, true);
         }
-
-        // Initial load
-
-        updateRegionList();
-        //selectDifficulty(0);
-        //loadRegion(region, modded);
 
     </script>
 </body>
