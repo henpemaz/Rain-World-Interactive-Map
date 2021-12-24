@@ -328,11 +328,38 @@
         }
 
         function selectRegion(value) {
-            console.log(value);
-            modded = document.getElementById('modded-ckb').checked
-            region = value;
-            updateRegionList(modded);
-            loadRegion(region, modded);
+            let newmodded = document.getElementById('modded-ckb').checked
+            if (region != value) {
+                room = null;
+            }
+            if (region != value || modded != newmodded) {
+                region = value;
+                modded = newmodded;
+                pushState();
+            }
+        }
+
+        // update difficulty filters
+        function selectDifficulty(n) {
+            // Elements have a combination of these filters
+            // as long as one matches, it should be displayed
+            // parent class hides it, and if one of the sub classes unhides it we're good
+            var sheet = document.getElementById('spawnfilters').sheet;
+            for (var rule of sheet.cssRules) {
+                if (rule.selectorText.startsWith(".spawn-filter-")) {
+                    if (rule.selectorText.endsWith(n)) { // Show
+                        rule.style.display = "initial";
+                    }
+                    else {
+                        rule.style.removeProperty("display"); // unset
+                    }
+                }
+            }
+            document.difficulty.difficulties[n].checked = true;
+            if (difficulty != n) {
+                difficulty = n;
+                pushState();
+            }
         }
 
         // acquire json
@@ -397,29 +424,113 @@
             }
         );
 
-        // update difficulty filters
-        function selectDifficulty (n) {
-            // Elements have a combination of these filters
-            // as long as one matches, it should be displayed
-            // parent class hides it, and if one of the sub classes unhides it we're good
-            var sheet = document.getElementById('spawnfilters').sheet;
-            for (var rule of sheet.cssRules) {
-                if (rule.selectorText.startsWith(".spawn-filter-")) {
-                    if (rule.selectorText.endsWith(n)) { // Show
-                        rule.style.display = "initial";
+        // Dynamic navigation
+        var dynamicNavigation; // Stupid browsers
+        if ('pushState' in window.history) {
+            dynamicNavigation = true;
+        }
+        
+        (function (w) {
+            w.URLSearchParams = w.URLSearchParams || function (searchString) {
+            //w.URLSearchParamsAlt = function (searchString) {
+                var self = this;
+                self.searchString = searchString;
+                self.values = {};
+                let result;
+                let exp = new RegExp('[\?&]([^=]*)=([^&#]*)', 'g');
+                while ((result = exp.exec(self.searchString)) != null) {
+                    console.log(result);
+                    self.values[result[1]] = decodeURI(result[2]);
+                }
+                // todo valueless
+                self.get = function (name) { return self.values[name]; };
+                self.set = function (name, value) { self.values[name] = value; };
+                self.delete = function (name ) { delete self.values[name]; };
+                self.toString = function () {
+                    let str;
+                    for (var name in self.values) {
+                        if (str) str += '&'; else str = '';
+                        str += name + '=' + self.values[name];
                     }
-                    else {
-                        rule.style.removeProperty("display"); // unset
+                    if (!str) return '';
+                    return '?' + str;
+                };
+                return self;
+            }
+        })(window) // URLSearchParams Polyfill-ish
+
+        // Params, navigation, state
+        var params = new URLSearchParams(document.location.search);
+        var region;
+        var modded;
+        var difficulty;
+        var room;
+        function pushState(noNavigation) {
+            let changes = false;
+            if (region != params.get("region")) {
+                params.set("region", region);
+                changes = true;
+            }
+            if (modded != (params.get("modded") == 'on' || region_order.indexOf(region) == -1 )) {
+                if (modded) params.set("modded", "on");
+                else params.delete("modded");
+                changes = true;
+            }
+            if (difficulty != (params.get("difficulty") ?? 0)) {
+                if (difficulty != 0) params.set("difficulty", difficulty);
+                else params.delete("difficulty");
+                changes = true;
+            }
+            if (room != params.get("room")) {
+                if (room) params.set("room", room);
+                else params.delete("room");
+                changes = true;
+            }
+            if (changes) { // actually changed anything
+                let newstr = params.toString();
+                if (dynamicNavigation) {
+                    window.history.pushState(null, '', window.location.pathname + '?' + newstr);
+                } else if (!noNavigation) document.location.search = newstr;
+                if (!noNavigation) newState();
+            }
+        }
+        function newState() {
+            //console.log("newState");
+            params = new URLSearchParams(document.location.search);
+            region = params.get("region");
+            if (region == null) {
+                window.location.href = "index.html";
+                return;
+            }
+            modded = params.get("modded") == 'on' || region_order.indexOf(region) == -1;
+            difficulty = params.get("difficulty") ?? 0;
+            room = params.get("room");
+            updateRegionList(modded);
+            loadRegion(region, modded);
+            selectDifficulty(difficulty);
+            let foundRoom = false;
+            if (room != null && roomsLayer != null) {
+                for (let l of roomsLayer.getLayers()) {
+                    if (l.feature.properties.name == room) {
+                        //map.fitBounds(l.getBounds());
+                        focusRoom(l);
+                        foundRoom = true;
+                        break;
                     }
                 }
             }
-            document.difficulty.difficulties[n].checked = true;
+            if (!foundRoom) {
+                if (room != null) {
+                    room = null;
+                    pushState();
+                }
+                resetFocus();
+                map.setView([0, 0], -5);
+            }
         }
 
-        var dynamicNavigation; // Stupid browsers
-        if ('URLSearchParams' in window && 'pushState' in window.history) {
-            dynamicNavigation = true;
-        }
+        window.onpopstate = newState;
+        window.onload = newState;
 
         // Room hover & select stuff
         var hilightedRoom;
@@ -458,7 +569,10 @@
         var focusedRoom;
         function focusRoom(e) {
             if (e.target) e = e.target;
-            if (e != focusedRoom) resetFocus();
+            if (e != focusedRoom && focusedRoom) focusedRoom.setStyle(
+                {
+                    weight: 0
+                });
             focusedRoom = e;
             console.log(focusedRoom.feature.properties.name + " focused")
             map.fitBounds(e.getBounds());
@@ -467,10 +581,9 @@
                 {
                     weight: 6
                 });
-            if (dynamicNavigation) {
-                params.set("room", e.feature.properties.name);
-                window.history.pushState(null, '', window.location.pathname + '?' + params.toString());
-            }
+
+            room = e.feature.properties.name;
+            pushState();
         }
 
         function updateFocus() {
@@ -488,6 +601,9 @@
                     weight: 0
                 });
             focusedRoom = null;
+
+            room = null;
+            pushState(true); // no navigation so no zoom change
         }
 
         // Map
@@ -536,10 +652,13 @@
         var connectionsLayer;
         var geometryLayer;
         var densLayer;
-
+        var loadedRegion = null;
+        var loadedModded = {};
         function loadRegion(pregion, pmodded) {
-            region = pregion;
+            if (loadedRegion == pregion && loadedModded == pmodded) return;
+            region = pregion; // chaos
             modded = pmodded;
+            console.log("LOADING REGION " + region + " modded? " + modded);
             var folderpath = 'tiles/' + (modded ? 'modded' : 'vanilla') + '/' + region + '/';
             getJsonObject(folderpath + "region.json", function (json) {
                 // Background color
@@ -555,10 +674,12 @@
                 }).addTo(map);
 
                 // Room features and name popups
+                let hadNames = map.hasLayer(roomNames) || loadedRegion == null;
                 if (roomNames != null) {
                     overlays.removeLayer(roomNames);
                     map.removeLayer(roomNames);
                 }
+                let hadRooms = map.hasLayer(roomsLayer) || loadedRegion == null;
                 if (roomsLayer != null) {
                     overlays.removeLayer(roomsLayer);
                     map.removeLayer(roomsLayer);
@@ -586,12 +707,14 @@
 
                         layer.bindTooltip(feature.properties.name, { direction: "center", offset: [0, -14], interactive: true, className: "rw-text room-labels hover-label" });
                     }
-                }).addTo(map);
+                });
+                if (hadRooms) roomsLayer.addTo(map);
                 overlays.addOverlay(roomsLayer, "Rooms");
-                roomNames.addTo(map);
+                if (hadNames) roomNames.addTo(map);
                 overlays.addOverlay(roomNames, "Room Names");
 
                 // Connections
+                let hadConnections = map.hasLayer(connectionsLayer) || loadedRegion == null;
                 if (connectionsLayer != null) {
                     overlays.removeLayer(connectionsLayer);
                     map.removeLayer(connectionsLayer);
@@ -602,10 +725,12 @@
                     lineCap: "butt", // hehe
                     dashArray: "5 8",
                     interactive: false,
-                }).addTo(map);
+                });
+                if (hadConnections) connectionsLayer.addTo(map);
                 overlays.addOverlay(connectionsLayer, "Connections");
 
                 // Geometry
+                let hadGeometry = map.hasLayer(geometryLayer) || loadedRegion == null;
                 if (geometryLayer != null) {
                     overlays.removeLayer(geometryLayer);
                     map.removeLayer(geometryLayer);
@@ -616,10 +741,12 @@
                     weight: 2,
                     lineCap: "butt", // im easily entertained
                     lineJoin: "miter",
-                }).addTo(map);
+                });
+                if (hadGeometry) geometryLayer.addTo(map);
                 overlays.addOverlay(geometryLayer, "Geometry");
 
                 // Spawns
+                let hadSpawns = map.hasLayer(densLayer) || loadedRegion == null;
                 if (densLayer != null) {
                     overlays.removeLayer(densLayer);
                     map.removeLayer(densLayer);
@@ -660,36 +787,41 @@
                             interactive: false,
                         });
                     },
-                }).addTo(map);
+                });
+                if (hadSpawns) densLayer.addTo(map);
                 overlays.addOverlay(densLayer, "Spawns");
 
                 // Zoom to room on rooms loaded
-                if (room != null) {
+                let foundRoom = false;
+                if (room != null && roomsLayer != null) {
                     for (let l of roomsLayer.getLayers()) {
                         if (l.feature.properties.name == room) {
-                            map.fitBounds(l.getBounds());
+                            //map.fitBounds(l.getBounds());
+                            focusRoom(l);
+                            foundRoom = true;
                             break;
                         }
                     }
                 }
+                if (!foundRoom) {
+                    if (room != null) {
+                        room = null;
+                        pushState();
+                    }
+                    resetFocus();
+                    map.setView([0, 0], -5);
+                }
+
+                loadedRegion = pregion;
+                loadedModded = pmodded;
             }, true);
         }
-
-        // Params
-        var params = new URLSearchParams(document.location.search);
-        var region = params.get("region");
-
-        if (region == null) { // Back to region select, fucko
-            window.location.href = "index.html";
-        }
-        var modded = params.get("modded") == 'on' || region_order.indexOf(region) == -1;
-        var room = params.get("room");
 
         // Initial load
 
         updateRegionList();
-        selectDifficulty(0);
-        loadRegion(region, modded);
+        //selectDifficulty(0);
+        //loadRegion(region, modded);
 
     </script>
 </body>
