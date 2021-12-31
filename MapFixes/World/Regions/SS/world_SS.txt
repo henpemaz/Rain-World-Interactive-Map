@@ -1,0 +1,4 @@
+ROOMS
+// fucking sidehouse
+SS_B02 : SS_C03, SS_S05, SS_E02, DISCONNECTED
+END ROOMS

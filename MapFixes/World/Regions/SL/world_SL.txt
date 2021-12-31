@@ -1,0 +1,4 @@
+ROOMS
+// fucking sidehouse
+SL_E03 : SL_H03, SL_A14, SL_S11, DISCONNECTED
+END ROOMS

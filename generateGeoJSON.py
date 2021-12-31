@@ -49,12 +49,12 @@ debug_one_region = False
 optimize_geometry = True
 skip_to = None
 
-task_export_tiles = False
-task_export_features = False
-task_export_room_features = False
-task_export_connection_features = False
-task_export_geo_features = False
-task_export_spawn_features = False
+task_export_tiles = True
+task_export_features = True
+task_export_room_features = True
+task_export_connection_features = True
+task_export_geo_features = True
+task_export_spawn_features = True
 
 regions = {}
 
@@ -548,7 +548,7 @@ for entry in os.scandir(screenshots_root):
                                 
                     if tile != None:
                         # done pasting rooms
-                        tile.save(os.path.join(target, f"{tilex}_{-1-tiley}.png"))
+                        tile.save(os.path.join(target, f"{tilex}_{-1-tiley}.png"), optimize=True)
                         tile.close()
                         tile = None
         print("done with tiles task")

@@ -308,7 +308,7 @@
         var region_order = ['SU', 'HI', 'DS', 'CC', 'GW', 'SH', 'SL', 'SI', 'LF', 'UW', 'SS', 'SB'];
         // dumped region dicts from running the generateGeoJSON scripts
         var regions = { "CC": "Chimney Canopy", "DS": "Drainage System", "GW": "Garbage Wastes", "HI": "Industrial Complex", "LF": "Farm Arrays", "SB": "Subterranean", "SH": "Shaded Citadel", "SI": "Sky Islands", "SL": "Shoreline", "SS": "Five Pebbles", "SU": "Outskirts", "UW": "The Exterior" };
-        var modded_regions = { "AB": "Arid Barrens", "AR": "Aether Ridge", "BL": "Badlands", "CC": "Chimney Canopy", "CG": "Concealed Garden", "DS": "Drainage System", "DW": "Deserted Wastelands", "FI": "Floating Isles", "GW": "Garbage Wastes", "HI": "Industrial Complex", "LF": "Farm Arrays", "LP": "Forgotten Boiler", "LW": "Lush Mire", "RW": "Side House", "SB": "Subterranean", "SH": "Shaded Citadel", "SI": "Sky Islands", "SL": "Shoreline", "SS": "Five Pebbles", "SU": "Outskirts", "SW": "Swamplands", "TM": "The Mast", "TR": "The Root", "UB": "Underbelly", "US": "Undersea", "UW": "The Exterior" };
+        var modded_regions = { "AB": "Arid Barrens", "AR": "Aether Ridge", "BL": "Badlands", "CC": "Chimney Canopy", "CG": "Concealed Garden", "DS": "Drainage System", "DW": "Deserted Wastelands", "FB": "Forgotten Boiler", "FI": "Floating Isles", "GW": "Garbage Wastes", "HI": "Industrial Complex", "HW": "Moonlit Acres", "LF": "Farm Arrays", "LW": "Lush Mire", "RW": "Side House", "SB": "Subterranean", "SH": "Shaded Citadel", "SI": "Sky Islands", "SL": "Shoreline", "SS": "Five Pebbles", "SU": "Outskirts", "SW": "Swamplands", "TM": "The Mast", "TR": "The Root", "UB": "Underbelly", "US": "Undersea", "UW": "The Exterior" };
 
         function updateRegionList(checked) {
             document.getElementById('modded-ckb').checked = checked;
@@ -519,10 +519,6 @@
                 }
             }
             if (!foundRoom) {
-                //if (room != null) {
-                //    room = null;
-                //    pushState();
-                //}
                 resetFocus();
                 map.setView([0, 0], -5);
             }
