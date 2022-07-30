@@ -1,68 +1,174 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="ISO-8859-1">
+    <title>Rain World Interactive Map</title>
 
-<meta charset="ISO-8859-1">
-<title>Rain World Interactive Map</title>
-    
-<meta property="og:image" content="https://avatars0.githubusercontent.com/u/7621953?s=400&amp;v=4" />
-<meta property="og:site_name" content="GitHub" /><meta property="og:type" content="object" />
-<meta property="og:title" content="Rain World Interactive Map" />
-<meta property="og:url" content="https://henpemaz.github.io/Rain-World-Interactive-Map/index.html" />
-<meta property="og:description" content="A Rain World interactive map using leaflet and GeoJSON data exported from the game files. - henpemaz/Rain-World-Interactive-Map" />
+    <meta property="og:image" content="https://avatars0.githubusercontent.com/u/7621953?s=400&amp;v=4" />
+    <meta property="og:site_name" content="GitHub" />
+    <meta property="og:type" content="object" />
+    <meta property="og:title" content="Rain World Interactive Map" />
+    <meta property="og:url" content="https://henpemaz.github.io/Rain-World-Interactive-Map/index.html" />
+    <meta property="og:description" content="A Rain World interactive map using leaflet and GeoJSON data exported from the game files. - henpemaz/Rain-World-Interactive-Map" />
 
-<link rel="stylesheet" href="./leaflet/leaflet.css" />
-<script src="./leaflet/leaflet-src.js"></script>
-<script src="./leaflet/Leaflet.Marker.Stack/Leaflet.Marker.Stack.js"></script>
-<script src="./leaflet/Leaflet.Marker.Stack/Leaflet.Icon.Chip.js"></script>
+    <link rel="stylesheet" href="./rw.css" />
 
-<link rel="stylesheet" href="./map.css" />
+    <style>
+        /* big flex block of darkness */
+        body, html {
+            background-color: black;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* floaty in the center */
+        #main-menu {
+            margin: auto;
+        }
+
+        /* stuck to the bottom, custom link colors */
+        #main-menu-footer {
+            margin-bottom: 0.1em;
+            text-align: center;
+            font-family: 'Segoe UI';
+            font-size: 0.8em;
+            font-weight: 500;
+            color: #A9A4B2; /* menu lightgray */
+            background-color: black;
+        }
+
+            #main-menu-footer a:link {
+                color: white;
+            }
+
+            #main-menu-footer a:visited {
+                color: #A9A4B2; /* menu lightgray */
+            }
+
+        /* expando list, flex that needs wrap on really small displays */
+        #regionlist-group {
+            margin-left: auto;
+            margin-right: auto;
+            margin-top: 0.8em;
+            margin-bottom: 0.8em;
+            width: fit-content;
+            max-width: 100vw;
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+        }
+
+            #regionlist-group > div {
+                width: 200px;
+                position: relative;
+                /* re-center after wrap */
+                margin-left: auto;
+                margin-right: auto;
+                padding: 4px;
+                transition: width 0.4s;
+            }
+
+        button.region-button {
+            position: relative;
+            width: 200px;
+            height: 40px;
+            background: black;
+            margin: 4px;
+        }
+        /* fancy ass animations for stuff poping in */
+        #regionlist-modded {
+            display: block;
+            transition: opacity 0.2s, width 0.4s;
+        }
+
+            #regionlist-modded.rl-hidden {
+                opacity: 0;
+                width: 0;
+                height: 0;
+            }
+
+            #regionlist-modded > .rw-ui {
+                transition: width 0.4s, margin 0.4s, padding 0.4s;
+                white-space: nowrap;
+            }
+
+            #regionlist-modded.rl-hidden > .rw-ui {
+                transition: width 0.4s, margin 0.4s, padding 0.4s;
+                width: 0px;
+                margin-left: 0;
+                margin-right: 0;
+                padding-left: 0;
+                padding-right: 0;
+                pointer-events: none;
+            }
+
+        #modded-ckb-group {
+            margin-left: auto;
+            margin-right: auto;
+            width: fit-content;
+        }
+
+        #modded-ckb {
+            position: relative;
+            width: 36px;
+            height: 36px;
+        }
+
+            
+    </style>
 
 </head>
 <body>
-<div id="mapid"></div>
+    <form id="main-menu" action="map.html" method="get">
+        <div class="rw-title">Rain World</div>
+        <div class="rw-bigtext" style="text-align: center; margin-top:0.5em;">I'm lost in...</div>
+        <div id="regionlist-group">
+            <div id="regionlist-vanilla"></div>
+            <div id="regionlist-modded" class="rl-hidden"></div>
+        </div>
+        <div id="modded-ckb-group"><input type="checkbox" id="modded-ckb" name="modded" class="rw-ui rw-ui-ckb" autocomplete="off" /><label for="modded-ckb" class="rw-text">Modded</label></div>
+        <script>
+            var region_order = ['SU', 'HI', 'DS', 'CC', 'GW', 'SH', 'SL', 'SI', 'LF', 'UW', 'SS', 'SB'];
+            // dumped region dicts from running the generateGeoJSON scripts
+            var regions = { "CC": "Chimney Canopy", "DS": "Drainage System", "GW": "Garbage Wastes", "HI": "Industrial Complex", "LF": "Farm Arrays", "SB": "Subterranean", "SH": "Shaded Citadel", "SI": "Sky Islands", "SL": "Shoreline", "SS": "Five Pebbles", "SU": "Outskirts", "UW": "The Exterior" };
+            var modded_regions = { "AB": "Arid Barrens", "AR": "Aether Ridge", "BL": "Badlands", "CC": "Chimney Canopy", "CG": "Concealed Garden", "DS": "Drainage System", "DW": "Deserted Wastelands", "FB": "Forgotten Boiler", "FI": "Floating Isles", "GW": "Garbage Wastes", "HI": "Industrial Complex", "HW": "Moonlit Acres", "LF": "Farm Arrays", "LW": "Lush Mire", "RW": "Side House", "SB": "Subterranean", "SH": "Shaded Citadel", "SI": "Sky Islands", "SL": "Shoreline", "SS": "Five Pebbles", "SU": "Outskirts", "SW": "Swamplands", "TM": "The Mast", "TR": "The Root", "UB": "Underbelly", "US": "Undersea", "UW": "The Exterior" };
+            var html = "";
+            // vanilla go in a special order
+            for (var r of region_order) {
+                html += '<button class="region-button rw-ui rw-text" name="region" value="' + r + '">' + regions[r].toUpperCase() + '</button><br />'
+            }
+            document.getElementById('regionlist-vanilla').innerHTML = html;
+            html = "";
+            // modded go alphabetically no repeats
+            for (var r in modded_regions) {
+                if (!(regions[r] == undefined)) continue;
+                html += '<button class="region-button rw-ui rw-text" name="region" value="' + r + '">' + modded_regions[r].toUpperCase() + '</button><br />'
+            }
+            document.getElementById('regionlist-modded').innerHTML = html;
 
-<div class="map-selector-panel">
-    <div class="panel-header">Regions</div>
-    <div class="map-selector-content">
-        <label><input type="radio" class="radio-hidden" name="region" onclick="load_region('SU');" value=0 autocomplete="off" checked="checked"><span>Outskirts</span></label>
-        <label><input type="radio" class="radio-hidden" name="region" onclick="load_region('HI');" value=0 autocomplete="off"><span>Industrial Complex</span></label>
-        <label><input type="radio" class="radio-hidden" name="region" onclick="load_region('DS');" value=0 autocomplete="off"><span>Drainage System</span></label>
-        <label><input type="radio" class="radio-hidden" name="region" onclick="load_region('CC');" value=0 autocomplete="off"><span>Chimney Canopy</span></label>
-        <label><input type="radio" class="radio-hidden" name="region" onclick="load_region('GW');" value=0 autocomplete="off"><span>Garbage Wastes</span></label>
-        <label><input type="radio" class="radio-hidden" name="region" onclick="load_region('SH');" value=0 autocomplete="off"><span>Shaded Citadel</span></label>
-        <label><input type="radio" class="radio-hidden" name="region" onclick="load_region('SL');" value=0 autocomplete="off"><span>Shoreline</span></label>
-        <label><input type="radio" class="radio-hidden" name="region" onclick="load_region('SI');" value=0 autocomplete="off"><span>Sky Islands</span></label>
-        <label><input type="radio" class="radio-hidden" name="region" onclick="load_region('LF');" value=0 autocomplete="off"><span>Farm Arrays</span></label>
-        <label><input type="radio" class="radio-hidden" name="region" onclick="load_region('UW');" value=0 autocomplete="off"><span>The Exterior</span></label>
-        <label><input type="radio" class="radio-hidden" name="region" onclick="load_region('SS');" value=0 autocomplete="off"><span>Five Pebbles</span></label>
-        <label><input type="radio" class="radio-hidden" name="region" onclick="load_region('SB');" value=0 autocomplete="off"><span>Subterranean</span></label>
-    </div>
-</div>
+            var updateVisibility = function () {
+                let ckb = document.getElementById('modded-ckb');
+                let moddedRegions = document.getElementById('regionlist-modded');
+                if (ckb.checked) {
+                    moddedRegions.classList.remove("rl-hidden");
+                } else {
+                    moddedRegions.classList.add("rl-hidden")
+                }
+            };
+            document.addEventListener("DOMContentLoaded", updateVisibility);
+            // fuck you, whatever restore mechanism is in play here
+            window.onload = function () {
+                updateVisibility();
+                setTimeout(updateVisibility, 100); // "restoring" a closed tab fires through events and then later... overrides classlists ??
+            };
+            document.getElementById('modded-ckb').onchange = updateVisibility;
+        </script>
 
-<div class="layer-panel">
-    <div class="panel-header">Difficulties</div>
-    <div class="difficulty-choice">
-        <label>
-            <input type="radio" class="radio-hidden" name="difficulties" onclick="show_difficulty(0);" value=0 autocomplete="off" checked="checked">
-            <img src="./resources/icons/17_slugcat.png">
-        </label>
-        <label>
-            <input type="radio" class="radio-hidden" name="difficulties" onclick="show_difficulty(1);" value=1 autocomplete="off" >
-            <img src="./resources/icons/65_monk.png">
-        </label>
-        <label>
-            <input type="radio" class="radio-hidden" name="difficulties" onclick="show_difficulty(2);" value=2 autocomplete="off" >
-            <img src="./resources/icons/64_hunter.png">
-        </label>
-    </div>
-    <div class="layer-content">
-        <div class="panel-header">Layers</div>
-    </div>
-</div>
-
-<script src="./map.js"></script>
-
-
+    </form>
+    <div id="main-menu-footer"><a href="https://github.com/henpemaz/">Henpemaz</a> 2021 | <a href="https://store.steampowered.com/app/312520/Rain_World/">Rain World</a> is property of <a href="https://twitter.com/VideocultMedia">Videocult</a></div>
 </body>
 </html>

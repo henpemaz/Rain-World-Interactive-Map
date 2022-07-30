@@ -1,0 +1,13 @@
+{
+   "regionPackName": "MapFixesVanilla", 
+   "description": "Adjusts devmaps and connections for a proper map render.", 
+   "author": "Henpemaz", 
+   "activated": true, 
+   "loadOrder": 0, 
+   "regions": "", 
+   "thumbURL": "", 
+   "version": "1.0", 
+   "requirements": "", 
+   "useRegionName": false, 
+   "checksum": "6b88980d9251dae18e53bce8bb8fe0b8" 
+}
