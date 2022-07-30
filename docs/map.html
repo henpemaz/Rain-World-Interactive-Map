@@ -357,7 +357,7 @@
             document.difficulty.difficulties[n].checked = true;
             if (difficulty != n) {
                 difficulty = n;
-                pushState();
+                pushState(true); // no navigation
             }
         }
 
