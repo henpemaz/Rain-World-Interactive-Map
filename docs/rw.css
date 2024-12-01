@@ -261,4 +261,10 @@ input[type='checkbox'].rw-ui, input[type='radio'].rw-ui {
     input[type='checkbox'].rw-ui-ckb:active + label {
         color: white;
     }
+
+/* STOP ANTIALIASING */
+img {
+    image-rendering: pixelated;
+}
+
 /* RW UI END */
